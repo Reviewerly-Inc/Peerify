@@ -1,0 +1,98 @@
+{
+  "B1_golden_supported.jsonl": {
+    "file": "B1_golden_supported.jsonl",
+    "total_instances": 500,
+    "missing_labels": 0,
+    "label_counts": {
+      "Supported": 500
+    },
+    "unique_labels": [
+      "Supported"
+    ]
+  },
+  "B2_reviewer_author.jsonl": {
+    "file": "B2_reviewer_author.jsonl",
+    "total_instances": 800,
+    "missing_labels": 0,
+    "label_counts": {
+      "Supported": 286,
+      "Partially Supported": 299,
+      "Contradicted": 148,
+      "Not Determined": 67
+    },
+    "unique_labels": [
+      "Contradicted",
+      "Not Determined",
+      "Partially Supported",
+      "Supported"
+    ]
+  },
+  "B3_reviewer_paper.jsonl": {
+    "file": "B3_reviewer_paper.jsonl",
+    "total_instances": 800,
+    "missing_labels": 0,
+    "label_counts": {
+      "Supported": 259,
+      "Not Determined": 251,
+      "Partially Supported": 102,
+      "Contradicted": 188
+    },
+    "unique_labels": [
+      "Contradicted",
+      "Not Determined",
+      "Partially Supported",
+      "Supported"
+    ]
+  },
+  "B4_agreement.jsonl": {
+    "file": "B4_agreement.jsonl",
+    "total_instances": 204,
+    "missing_labels": 0,
+    "label_counts": {
+      "Supported": 95,
+      "Not Determined": 20,
+      "Contradicted": 47,
+      "Partially Supported": 42
+    },
+    "unique_labels": [
+      "Contradicted",
+      "Not Determined",
+      "Partially Supported",
+      "Supported"
+    ]
+  },
+  "B5_verifiable.jsonl": {
+    "file": "B5_verifiable.jsonl",
+    "total_instances": 609,
+    "missing_labels": 0,
+    "label_counts": {
+      "Supported": 222,
+      "Partially Supported": 238,
+      "Contradicted": 103,
+      "Not Determined": 46
+    },
+    "unique_labels": [
+      "Contradicted",
+      "Not Determined",
+      "Partially Supported",
+      "Supported"
+    ]
+  },
+  "B6_human.jsonl": {
+    "file": "B6_human.jsonl",
+    "total_instances": 150,
+    "missing_labels": 0,
+    "label_counts": {
+      "Contradicted": 34,
+      "Partially Supported": 51,
+      "Supported": 44,
+      "Not Determined": 21
+    },
+    "unique_labels": [
+      "Contradicted",
+      "Not Determined",
+      "Partially Supported",
+      "Supported"
+    ]
+  }
+}
