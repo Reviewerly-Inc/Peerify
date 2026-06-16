@@ -1,0 +1,1729 @@
+## FERERO: A Flexible Framework for Preference-Guided Multi-Objective Learning
+
+Lisha Chen 1 , AFMSaif 1 , Yanning Shen 2 , Tianyi Chen 1 1 2
+
+Rensselaer Polytechnic Institute, University of California, Irvine
+
+## Abstract
+
+Finding specific preference-guided Pareto solutions that represent different tradeoffs among multiple objectives is critical yet challenging in multi-objective problems. Existing methods are restrictive in preference definitions and/or their theoretical guarantees. In this work, we introduce a Flexible framEwork for pREfeRenceguided multi-Objective learning ( FERERO ) by casting it as a constrained vector optimization problem. Specifically, two types of preferences are incorporated into this formulation - the relative preference defined by the partial ordering induced by a polyhedral cone, and the absolute preference defined by constraints that are linear functions of the objectives. To solve this problem, convergent algorithms are developed with both single-loop and stochastic variants. Notably, this is the first single-loop primal algorithm for constrained optimization to our knowledge. The proposed algorithms adaptively adjust to both constraint and objective values, eliminating the need to solve different subproblems at different stages of constraint satisfaction. Experiments on multiple benchmarks demonstrate the proposed method is very competitive in finding preference-guided optimal solutions. Code is available at https://github.com/lisha-chen/FERERO/ .
+
+## 1 Introduction
+
+Many machine learning tasks inherently involve multiple objectives, which can be different performance metrics such as accuracy, fairness, and privacy; or, the same metrics defined on different data [52, 42]. To tackle such multi-objective problems, it is common to learn a shared model that simultaneously performs well on all the objectives. Compared to learning one model for each objective, learning a shared model has the benefit of reducing both the model size and the inference time. This can be achieved through multi-objective optimization [52, 59, 35], which is to learn a model that minimizes the vector-valued objective. In practical applications, it is of interest to learn solutions with controlled trade-offs or preferences. To further illustrate, we give two examples below.
+
+In fairness-aware machine learning, a trade-off exists between the fairness f fair ( θ ) and accuracy f acc ( θ ) [42, 37], see also Figure 1a. With θ denoting the model parameter, and C denoting the partial order cone, to find the optimal models that consider different trade-offs, one can solve the following problem with different thresholds ϵ [9]
+
+<!-- formula-not-decoded -->
+
+Another example is in drug or molecule design, where the goal is to design drugs or molecules with multiple desired properties f 1 ( θ ) , f 2 ( θ ) , . . . , f M ( θ ) . Aiming to align the values of the properties F ( θ ) with a predefined preference vector v as in Figure 1b, one can solve the following problem [40, 1, 61]
+
+<!-- formula-not-decoded -->
+
+where B ∈ R ( M -1) × M is full row rank.
+
+Table 1: Comparison to existing methods. 'Flexibility' represents preference modeling, such as by using weights, preference vectors (rays), or constraints. 'Exactness' represents the ability to align with a preference vector exactly. 'Deter.', 'Stoch.' represent deterministic and stochastic, respectively. ' ✗ ' means not provided in the corresponding work, and '-' means not relevant.
+
+| Method          | Preference          | Exactness   | Controlled ascent   | Single loop   | Convergence    | Convergence   |
+|----------|----------|----------|----------|----------|----------|----------|
+|          | Flexibility          |          |          |          | Deter.         | Stoch.        |
+| Linear Scalarization (Smooth) Tchebycheff [32] PMTL [33] | weight weight (ratio,   | -          | ✗          | ✓          | T - 1          | T - 1 2       |
+|          |          | -          | ✗          | ✓          | non-asymptotic | ✗          |
+|          | inequalities (absolute) | ✗          | ✗          | ✗          | asymptotic     | ✗          |
+| EPO [41]          | r - 1 ray absolute)     | ✓          | ✓          | ✗          | asymptotic     | ✗          |
+| (X)WC-MGDA [44]          | shifted ray (absolute)  | ✓          | ✗          | ✗          | ✗          | ✗          |
+| FERERO (ours)          | relative &absolute      | ✓          | ✓          | ✓          | T - 1          | T - 1 2       |
+
+Then a natural question arises:
+
+Can we develop a principled framework to capture flexible preferences and admit provably convergent deterministic and stochastic algorithms?
+
+Our answer to this question is affirmative. Recognizing that all the aforementioned applications can be addressed within a unified frame-
+
+Figure 1: Illustration of preferences in different examples. The solid red curves represent the Pareto front, dashed lines represent preference constraints.
+
+<!-- image -->
+
+work, we formulate preference-guided multi-objective learning (PMOL) as a constrained vector optimization problem. Specifically, given a model θ ∈ R q , and the objectives f m : R q → R , m = 1 , . . . , M , we define the constrained vector optimization problem as
+
+<!-- formula-not-decoded -->
+
+where G ( θ ) and H ( θ ) are the vector-valued preference constraints such as the examples in (1.1) and (1.2). Here ' ≤ ' and ' = ' are element-wise relations on the vectors, with each row representing one constraint. In these examples, the preferences are directly defined in the objective space, as intersections of half-spaces defined by the hyperplanes; see Figure 1. Thus, G ( · ) and H ( · ) in (PMOL) can be expressed as linear functions of F ( θ ) , given by
+
+<!-- formula-not-decoded -->
+
+where B g ∈ R M g × M , B h ∈ R M h × M , and b g ∈ R M g , b h ∈ R M h . Different B g , B h , b g , b h correspond to different preferences, and thus different trade-offs among the objectives.
+
+A comparison of our methods to existing methods is summarized in Table 1. Specifically, our contributions are listed as follows:
+
+- C1) We cast the PMOL problem as a constrained vector optimization problem, and develop the FERERO framework to capture flexible preferences.
+- C2) Under the FERERO framework, we develop a meta primal algorithm with a unified subprogram adaptive to both objectives and constraints to meet flexible preferences, eliminating the need for multiple subprograms under different active constraints.
+- C3) Under the FERERO framework, we develop a practical single-loop algorithm with nonasymptotic convergence guarantees. To our best knowledge, this is the first single-loop primal algorithm in constrained vector optimization with convergence guarantees.
+- C4) We apply the proposed algorithms to various synthetic and real-world image and speech datasets to demonstrate its ability to find flexible preference-guided optimal models.
+
+In our theoretical analysis, we address the following technical challenges.
+
+- T1) The commonly used constraint qualification assumptions do not generally hold for the PMOL problem. We overcome this challenge by leveraging the specific structure that the constraints are linear functions of F to prove the calmness condition holds for PMOL. See more details in Lemma 2.
+- T2) The convergence of the single-loop algorithm is slower with the commonly-used merit functions. We provide a sharper analysis by introducing a different merit/Lyapunov function and exploiting the algorithm properties under additional assumptions. See Theorem 3.
+
+- T3) The convergence analysis often relies on assumptions on bounded functions or bounded constraints. We remove such assumptions by applying similar techniques in [7] with proper choice of Lyapunov functions, and exploiting algorithm properties. See Theorems 2 and 3.
+
+## 2 Problem Setup and A Meta Algorithm
+
+To characterize the optimality conditions of PMOL, we introduce the generalized notion of dominance and the related concept of optimality. We then present a meta-algorithm to solve PMOL.
+
+## 2.1 Problem setup and preliminaries
+
+̸
+
+We first introduce optimality definitions for PMOL that go beyond the standard definitions of Pareto optimality [15, 11, 36]. Given two vectors v and w , we use v &lt; w and v ≤ w to denote v i &lt; w i for all i , and v i ≤ w i for all i , respectively. We use v ⪇ w to denote v ≤ w and v = w , and define &gt;, ≥ , ⪈ analogously.
+
+Definition 1 ( C A -dominance [12, 27]) . Given v, w ∈ R M , A ∈ R M × M , and C A := { y ∈ R M | Ay ≥ 0 } ̸ = ∅ , we say v strictly dominates w based on C A if and only if A ( v -w )
+
+Figure 2: Illustration of C A -dominance. The solid red curves are the Pareto fronts, green dots are the reference points, gray shaded regions are the set of objectives dominating the reference points, under different C A in (a) and (b).
+
+<!-- image -->
+
+&lt;
+
+0
+
+.
+
+The generalized dominance defines a partial order on R M , i.e., the relation between two vectors. Illustrations of different partial orders are given in Figure 2. Figure 2a shows the dominance relation under the widely used non-negative orthant cone with C A = R M + , corresponding to Pareto optimality. However, as illustrated by the figure, given the initial green reference point, a descent method such as MGDA[15] cannot find points on the Pareto front but outside of the gray shaded region. This poses a critical challenge for applications where specific preference-guided solutions on the Pareto front are needed. Nevertheless, this issue can be addressed by substituting R M + with a more general definition of C A as displayed in Figure 2b. Under this partial order, a general descent method is able to reach any points on the Pareto front starting from the green reference point.
+
+Based on the partial order, one can then find the minimum or optimal elements in the vector-valued objective space, whose formal definition is provided below.
+
+̸
+
+Definition 2 ( C A -optimal) . A point θ ∈ R q is C A -optimal if there is no θ ′ = θ such that, AF ( θ ′ ) ⪇ AF ( θ ) . A point θ is weakly C A -optimal if there is no θ ′ = θ such that, AF ( θ ′ ) &lt; AF ( θ ) .
+
+̸
+
+Note that, C A is a polyhedral cone, or the intersection of half-spaces defined by the rows of the inequality Ay ≥ 0 . When A = I M , an M × M identity matrix, C A = R M + := { y ∈ R M | y m ≥ 0 ∀ m ∈ [ M ] } , then Definition 1 reduces to the commonly used notion of dominance associated with Pareto optimality. The cone C A can be interpreted as a relative preference that defines the objectives' improvement directions, which generalizes the relative preference defined by R M + . In contrast, the preference defined by constraints in (1.3) can be interpreted as an absolute preference that defines the feasible or preferred set of objective function values. In practice, C A can be chosen based on the requirements of specific applications. For example, when the controlled ascent of objectives is needed [41], we can choose C A such that the controlled ascent direction belongs to -C A . We defer the detailed implementation to Section 3.2. The C A -optimal set, denoted as P A , contains all the C A -optimal models. When A = I M , P A is the Pareto optimal set P . The Pareto front is the set of function values evaluated at Pareto optimal models, i.e., F = { F ( θ ) | θ ∈ P} .
+
+We make the following standard assumptions throughout the paper [15, 25, 7].
+
+⊤ q
+
+Assumption 1. 1. (Non-negative objectives) AF ( θ ) ≥ 0 , and 1 AF ( θ ) ≥ c AF &gt; 0 for all θ ∈ R . 2. (Differentiable objectives) F is twice continuously differentiable.
+
+3. (Ordering cone with non-empty interior) C A has a non-empty interior.
+
+## 2.2 Find the preference-guided direction
+
+In this section, we proceed to discuss an adaptive method to solve (PMOL). At iteration t , the algorithm finds an update direction d t and performs the iterative update θ t +1 = θ t + α t d t with a step size α t . Ideally, the update direction d t is chosen to improve the objective F ( θ ) and to satisfy
+
+the preference constraints. It is desirable that when the constraints are not satisfied, d t decreases the violation of constraints and improves the objectives in the general partial ordering sense; when the constraints are satisfied, d t improves the objectives and ensures the constraints are satisfied. To achieve this, we find a direction d ∗ ( θ ) that solves following subprogram
+
+<!-- formula-not-decoded -->
+
+where ∥ · ∥ denotes the ℓ 2 -norm, c g and c h are pre-defined positive constants. Larger c g and c h put more emphasis on constraint satisfaction than objective improvement. We call this subprogram adaptive since it deals with constraints in an adaptive way, which does not require the initial model to be feasible, nor θ t to be feasible at each iteration. But rather, it finds an update direction that decreases the constraint violation. Because of this, it neither requires solving different subprograms at different stages nor requires different treatment of the active set of inequalities as in existing works [33, 41, 44].
+
+We then show in Lemma 1 that the desired properties can be satisfied.
+
+Lemma 1. For the subprogram (2.1) , the following holds:
+
+̸
+
+If θ is a local optimal solution with AF ( θ ) &gt; 0 , then d ∗ ( θ ) = 0 , ψ ( θ ) = 0 . Otherwise, if θ is not a local optimal solution, then d ∗ ( θ ) = 0 , ψ ( θ ) &lt; 0 , and when θ is feasible,
+
+<!-- formula-not-decoded -->
+
+Let θ be a weak C A -optimal solution, with
+
+̸
+
+( AF ( θ )) m = 0 for some m ∈ [ M ] . If there exists feasible and non-strictly improving directions at θ with A ∇ F ( θ ) ⊤ d ⪇ 0 , then d ∗ ( θ ) = 0 , ψ ( θ ) &lt; 0 . Otherwise, d ∗ ( θ ) = 0 , ψ ( θ ) = 0 .
+
+By Lemma 1, ∥ d ∗ ( θ ) ∥ = 0 is a stationary condition for PMOL. Recall the feasibility condition requires [ G ( θ )] + = 0 and | H ( θ ) | ab = 0 , where [ · ] + and | · | ab are entry-wise ReLU and absolute functions, respectively. And the complementary slackness condition requires λ ∗ g ⊤ [ -G ( θ )] + = 0 . Thus ∥ d ∗ ( θ ) ∥ 2 + λ ∗ g ⊤ [ -G ( θ )] + + ∥ [ G ( θ )] + ∥ 1 + ∥ H ( θ ) ∥ 1 achieves zero if and only if the model θ satisfies the first-order KKT condition. Besides the properties in Lemma 1, it has an additional scale-invariant property that is deferred to Lemma 6 due to space limit.
+
+By the Lagrangian of (2.1), the optimal update direction can be expressed in a simple form as a weighted combination of the gradients, i.e. d ∗ ( θ ) = -∇ F ( θ ) A ⊤ ag λ ∗ , with A ag := [ A ; B g ; B h ] , and
+
+<!-- formula-not-decoded -->
+
+where λ = [ λ f ; λ g ; λ h ] , Ω λ ( θ ) is the domain of the Lagrangian multipliers, given by 1
+
+<!-- formula-not-decoded -->
+
+Our goal is to design an algorithm that converges to a KKT solution based on (2.1). However, the KKT condition is not necessary unless certain constraint qualifications (CQs) hold. Prior works [20, 33] assume certain CQs hold, e.g., the Linear Independence Constraint Qualification (LICQ). However, the LICQ assumption (c.f., [20, Section 3.1, (A2)]) does not generally hold at a local optimal solution for problem (PMOL), c.f., Example 1 in Appendix D.3.2. Though some commonly used CQs do not hold generally, in our case, leveraging the specific structure that the constraints are linear functions of F , we can justify the calmness CQ in Definition 10 tailored for our problem in Lemma 2, thus the KKT condition is a necessary optimality condition. The proof is deferred to Appendix D.3.2.
+
+1 Note that, our formulation and analysis cover the constrained MOO problem with a simplified subprogram, where Ω λ f = ∆ M , which is detailed in Remark 4 in Appendix D.1.
+
+## Algorithm 1 A meta FERERO algorithm
+
+- 1: Initialize t = 0 , θ 0 , step size { α t } ; define A .
+
+̸
+
+- 2: while ψ ( θ t ) = 0 do
+- 3: Compute gradient ∇ F ( θ t ) ;
+- 4: Compute λ t by (approximately) solving (2.3);
+- 5: Compute the update direction
+- 6: d t = -∇ F ( θ t ) A ⊤ ag λ t ;
+- 7: Update θ t by θ t +1 = θ t + α t d t ;
+- 8:
+- Set t = t +1 ;
+- 9: end while
+
+## Algorithm 2 FERERO-SA
+
+- 1: Initialize t = 0 , θ 0 , λ 0 , step sizes { α t , γ t } ; define A , number of iterations T .
+- 2: for t = 0 , . . . , T -1 do
+- 3: Compute gradient ∇ F ( θ t ) ;
+- 4: Compute direction d t = -∇ F ( θ t ) A ⊤ ag λ t ;
+- 5: Update θ t by θ t +1 = θ t + α t d t ;
+- 6: Update λ t by (3.1);
+- 7: end for
+
+Lemma 2. Let ¯ θ ∈ R q be a global solution to (PMOL). Define Σ( p, q ) := { y ∈ R M | B g y + b g ≤ p, B h y + b h = q } . If Σ( p, q ) is a line, the PMOL calmness condition in Definition 10 is satisfied for (PMOL) at ¯ θ if A ∈ R M × M is full rank, H ( θ ) , G ( θ ) defined by (1.3) satisfy [ B ⊤ h , B ⊤ g ] = 0 , and B h , B g are full row rank. Consequently, the KKT condition is a necessary optimality condition.
+
+̸
+
+Lemma 2 provides a sufficient condition for the KKT condition to be a necessary optimality condition without relying on unjustified assumptions. The requirement that the constraint set is a line in the objective space is common for applications such as alignment to a preference vector.
+
+We then discuss a generic preference-guided multi-objective algorithm based on the subprogram.
+
+## 2.3 A meta algorithm for preference-guided multi-objective learning
+
+Given the model θ t at iteration t , one can then solve (2.3) to obtain λ t . The direction d t = -∇ F ( θ t ) A ⊤ ag λ t is used to update the model θ t by θ t +1 = θ t + α t d t iteratively until convergence. The full procedure of this meta algorithm is summarized in Algorithm 1, where Step 4 is a generic step and can be customized in Section 3.
+
+To establish the non-asymptotic convergence rate, we use the following standard smoothness assumption that has been commonly used in prior works for multi-objective learning [7, 36].
+
+Assumption 2 (Smooth objectives) . For all m ∈ [ M ] , ∇ f m ( θ ) is ℓ f, 1 -Lipschitz continuous.
+
+We then state the convergence result for Algorithm 1 in Theorem 1.
+
+Theorem 1 (Convergence of the generic FERERO algorithm) . Suppose Assumptions 1, 2 hold. Let { θ t } be the sequences produced by Algorithm 1, with d t being an ϵ -optimal solution to the subprogram (2.1) . If ∥ λ ∗ ( θ t ) ∥ 1 ≤ c λ , α t ≤ min { 1 c λ ℓ f, 1 ∥ A ⊤ ag ∥ ∞ , 1 , c -1 g , c -1 h } , and α t = Θ(1) , then
+
+<!-- formula-not-decoded -->
+
+Theorem 1 guarantees the non-asymptotic convergence for the generic FERERO algorithm. In Algorithm 1, λ t can be solved through projected gradient descent or Frank Wolfe algorithm iteratively within an inner loop. In practice, we usually do not need to solve the subprogram exactly. Next, we discuss the efficient single-loop approximate algorithm based on Algorithm 1.
+
+## 3 Efficient Single-loop Algorithms
+
+In this section, we first discuss algorithm development with the approximate single-loop update and practical choice of preferences. We focus on (PMOL) with equality constraints only , i.e., M g = 0 . Building upon this, we then discuss the stochastic variants of the algorithms that can be applied to large-scale learning problems.
+
+## 3.1 Single-loop approximate algorithm
+
+In practice, if one only requires the converging solutions generated by the algorithm to be feasible, but not all the iterates, then further approximations can be made to the subprogram (2.3). At iteration t , to obtain an approximate direction d t , we adopt the following update
+
+<!-- formula-not-decoded -->
+
+The single-loop algorithm with the approximate solution is summarized in Algorithm 2. We name it FERERO with Single-loop Approximate update (FERERO-SA) algorithm.
+
+We make the following additional assumption of Lipschitz objectives to prove the convergence of Algorithm 2, which is standard in optimization literature.
+
+Assumption 3 (Lipschitz objectives) . For all m ∈ [ M ] , f m ( θ ) is ℓ f -Lipschitz continuous.
+
+To prove the convergence of Algorithm 2, we can use the same merit function with ℓ 1 -norm of H ( θ t ) , which leads to a slow convergence rate of O ( T -1 6 ) . See Theorem 2 below and its proof in Appendix F.2, where the proof follows similar ideas of the proofs of Theorem 3 and Theorem 5 in [7].
+
+Theorem 2 (Convergence of the FERERO-SA algorithm) . Suppose Assumptions 1, 2, 3 hold, and M g = 0 . Let { θ t } , { λ t } be the sequences produced by Algorithm 2 with A = I and Ω λ f ( θ ) = ∆ M (c.f. Remark 4). Assume λ t , λ ∗ ( θ t ) , and λ ∗ ρ ( θ t ) := arg min λ ∈ Ω λ φ ( λ ; θ t ) + ρ 2 ∥ λ ∥ 2 are bounded. With properly chosen step sizes α = Θ( T -5 6 ) , γ = Θ( T -1 6 ) , and hyperparameters, it holds that
+
+<!-- formula-not-decoded -->
+
+To obtain a sharper convergence rate, we consider a different merit function with ℓ 2 -norm of the constraint H ( θ t ) , and under additional assumptions listed below.
+
+Definition 3 (Proximal PL inequality) . Define D φ,γ ( λ ; θ ) := -2 γ min λ ′ ∈ Ω λ { ⟨∇ λ φ ( λ ; θ ) , λ ′ -λ ⟩ + 1 2 γ ∥ λ ′ -λ ∥ 2 } . We say φ ( λ ; θ ) satisfies the µ φ -proximal PL inequality on the point ( λ, θ ) , if there exists some constant µ φ &gt; 0 such that D φ,γ ( λ ; θ ) ≥ µ φ ( φ ( λ ; θ ) -φ ( λ ∗ ( θ ); θ ) ) .
+
+Assumption 4. For θ ∈ { θ t } , λ ∈ { λ t } on the trajectory of Algorithm 2, the following hold:
+
+1. φ ( · ; θ ) is µ φ -proximal PL in Definition 3; 2. For all m ∈ [ M ] , ∇ 2 f m ( θ ) is ℓ f, 2 -Lipschitz continuous.
+
+Assumption 4-1 essentially requires some regularity conditions of φ ( · ; θ ) on the trajectory of Algorithm 2. Leveraging the fact that φ ( · ; θ ) is convex, it has been discussed in e.g., [28, Appendix B] that if the smallest non-zero singular value of the Hessian is bounded away from zero, then Assumption 4-1 holds. This could be satisfied when the gradients ∇ F ( θ t ) A ⊤ ag have lower-bounded non-zero singular values on the trajectory. A more detailed analysis of the sufficient conditions for Assumption 4-1 to hold is left for furture work.
+
+We then provide a sharper convergence analysis in Theorem 3. The detailed proof and choices of step sizes and hyperparameters are deferred to Appendix F.3.
+
+Theorem 3 (Sharper convergence of the FERERO-SA algorithm) . Suppose Assumptions 1, 2, 3, 4 hold, and M g = 0 . Let { θ t } , { λ t } be the sequences produced by Algorithm 2 with A = I and Ω λ f ( θ ) = ∆ M (c.f. Remark 4). With properly chosen step sizes α t = Θ(1) , γ t = Θ(1) , and hyperparameters, it holds that
+
+<!-- formula-not-decoded -->
+
+Theorem 3 states that { θ t } produced by Algorithm 2 converges to a KKT solution of the PMOL problem in the general nonconvex case. Moreover, both ∥ d t ∥ 2 and ∥ H ( θ t ) ∥ 2 converge to zero at a rate of O ( T -1 ) , implying the convergence of both the objective values and the preference constraints. Note that, the convergence in terms of ∥ H ( θ t ) ∥ 2 at a rate of O ( T -1 ) is weaker compared to the one with ∥ H ( θ t ) ∥ 1 at the same rate for Algorithm 1. This is reasonable since Algorithm 2 only uses a one-step approximate update of λ t instead of exactly solving the subprogram.
+
+The stochastic variant. We employ a stochastic variant of Algorithm 2 based on the double sampling techniques developed in the recent work [7]. The update is given by
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+where ˜ ∇ is the unbiased stochastic estimate of the gradient, and ξ t, 1 and ξ t, 2 are two independent stochastic samples obtained at iteration t .
+
+The full description of the stochastic algorithm and its convergence guarantee are deferred to Appendix G. We provide a converegnce rate guarantee that matches the rate of SGD under additional assumptions on the bounded variance of the stochastic gradients.
+
+## 3.2 Choice of relative preferences
+
+As briefly discussed in Section 2.1, the ordering cone and the corresponding matrix A can be specified according to practical needs. We first discuss how to obtain matrix A for the relative preference given the set of improvement directions. Then we discuss how to choose the relative preference to allow controlled ascent update, which is useful for touring the Pareto front [41].
+
+Ordering cone generation. In practice, to obtain the polyhedral cone that defines the partial order, one can usually first define the extreme rays of the polyhedral cone. We then show how to convert the extreme ray description of the cone to the half-space description given by matrix A , i.e., C A = { y ∈ R M | Ay ≥ 0 } , by showing how to compute A from the extreme rays.
+
+Let Y = [ y 1 · · · y M ] ∈ R M × M be a matrix that contains all the extreme rays of C A as its column vectors, then C A = { Y λ | λ ≥ 0 } . Let a ⊤ m ∈ R 1 × M denote the row vectors of A for all m ∈ [ M ] . Then all a m can be found by a that solves the following linear feasibility program
+
+̸
+
+<!-- formula-not-decoded -->
+
+Choice of C A for controlled ascent. If C A is not pre-specified, and the decision maker wants to choose C A to allow controlled ascent, it can be achieved with the following procedure. Let F 0 = F ( θ 0 ) be the objective of the initial iterate of the algorithm, and F tg be the target function value along the controlled ascent direction. To ensure F tg -F 0 ∈ -C A for controlled ascent, we include ( F 0 -F tg ) / ∥ F 0 -F tg ∥ in the set of extreme rays, then take the extreme rays of the convex hull of the new set to form the columns of Y . Finally, we obtain C A by solving (3.5).
+
+## 4 Related Works
+
+To put our work in context, we review the most relevant literature in (preference-guided) multiobjective optimization, constrained optimization, with a focus on gradient-based approaches.
+
+Multi-objective optimization (MOO). A straightforward approach of MOO is to use scalarization to transform MOO into a single-objective optimization problem [43]. Another popular approach focuses on finding update directions which avoid conflicts with the gradients of the objectives [52, 59, 35]. A foundational algorithm in this domain is the Multiple Gradient Descent Algorithm (MGDA) [15, 17, 11, 36], which dynamically weights gradients to find a steepest common descent direction for all objectives. Later on, variants of MGDA are developed, which are discussed in detail in Appendix B.1 and [7]. However, solutions based on MGDA usually cannot capture pre-defined user preferences that represent various trade-offs on the Pareto front. This motivates the development of preference-guided multi-objective optimization methods.
+
+Preferences can be modeled through weights or thresholds assigned to different objectives [43]. For example, scalarization-based methods use the ℓ p -norm of the weighted vector-valued objective to convert the vector-valued objective into a scalar-valued objective, e.g., Linear scalarization (LS), Tchebycheff scalarization; see e.g., [32]. Then the problem can be solved by single-objective optimization on the scalar objective. The ϵ -constraint methods enforce threshold constraints on different objectives, then solve the problem by constrained optimization; see e.g., [9]. More recently, preferences have been modeled by preference vectors defined in the objective space. Then the problem can be formulated as finding Pareto optimal solutions satisfying the constraints defined by the preference vectors [33], or optimizing the distance to the preference vectors [41, 44]. The key difference between FERERO and these works is that FERERO can capture more flexible preferences based on a general partial order, and general inequality/equality constraints. Moreover, we provide convergence rate guarantees for the proposed algorithms. A detailed comparison is summarized in Table 1 in Section 1 and Table 5 in Appendix B.2.
+
+Constrained optimization. Constrained optimization methods include primal methods, penalty and barrier methods, and primal-dual methods [4, 39]. Our proposed method is related to the primal method that finds an update direction to ensure the models are feasible and improving along the optimization trajectory. To address the limitation that it usually requires a stage-one procedure to
+
+Figure 3: Converging solutions (blue dots) and optimization trajectories (blue lines) on the objective space of different methods on synthetic objectives given in (5.1). Dashed arrows represent prespecified preference vectors. The green dots represent initial objective values.
+
+<!-- image -->
+
+Figure 4: Outputs (colored markers) and optimization trajectories (colored lines) of different methods when initial objectives are near the Pareto front. Different colors represent different preferences.
+
+<!-- image -->
+
+ensure the initialization is feasible, we use an adaptive approach to ensure the constraint violation is decreasing and converging to zero. This idea can also be found in sequential quadratic programming (SQP). SQP has been widely applied to solve constrained single-objective optimization [21, 6]. Later on, it has also been applied to constrained MOO [16]. Compared to SQP, we use an identity matrix to approximate the Hessian of each objective, and we propose an adaptive variant that automatically adjust the descent amount of objectives. Furthermore, existing SQP algorithms typically require an inner loop to solve the optimal Lagrangian multiplier, resulting in double-loop algorithms. In contrast, we develop a single-loop algorithm which can be more efficient.
+
+Vector optimization. Vector optimization [12, 27] generalizes multi-objective optimization by substituting the commonly used component-wise partial order with a more general partial order, such as a general convex-cone induced partial order used in this paper. In the unconstrained setting, the MGDA method is extended to a steepest cone descent method in the vector optimization setting in [25]. In the constrained setting, the first-order optimality conditions are studied in [23, 57]. Algorithms based on projected gradient [24, 18, 19] or conditional gradient [8] are developed to solve vector optimization with parameters in a constraint set, to name a few. Besides gradient-based vector optimization, another line of works focus on black-box vector optimization with discrete design space; see e.g. [3, 2]. To our best knowledge, we are the first to design gradient-based single-loop (stochastic) primal algorithms for constrained vector optimization with convergence rate guarantees.
+
+## 5 Experiments
+
+In this section, we conduct experiments to verify our theory and show the applicability of the algorithms to preference-guided multi-task learning, and multi-objective finetuning of large multilingual speech recognition models. We use Linear scalarization (LS), MGDA [52], PMTL [33], EPO [41], XWC-MGDA [44] as baselines for comparison.
+
+Metrics. Objective loss and accuracy. We report the objective losses and accuracies in classification. Relative loss profile. We use the element-wise product of the preference vector and the objective values as a measure of the relative loss profile. Hypervolume. Let F ′ ∈ R M denote a reference point, and S denote a set of objective function values of the obtained models. Hypervolume measures the size of the dominated space of S relative to F ′ , which can be computed by H ( S ) = Λ( { q ∈ R M | ∃ F ∈ S : F ≤ q ≤ F ′ } ) , where Λ( · ) denotes the Lebesgue measure. For a fair comparison, we use the Nadir point, i.e., the worst performance on single-task baselines, as the reference point F ′ .
+
+Additional details. The implementation and additional experiments can be found in Appendix H.
+
+## 5.1 Synthetic data
+
+Following [33, 41, 44], the first objective we consider is
+
+<!-- formula-not-decoded -->
+
+The objective has a nonconvex Pareto front (PF). See the results of different methods in Figure 3. With uniformly generated weights from a simplex, LS only finds extreme points on the PF with one objective minimized. MGDA can only find points close to the center of the PF. PMTL can find points
+
+Figure 5: Training losses and accuracies of various methods with different preferences across three image datasets. The horizontal and vertical axes represent results for objective 1 and objective 2, respectively. Different colored dashed arrows indicate various preference vectors. Different markers denote the solutions obtained by different methods, with marker colors matching the preferences.
+
+<!-- image -->
+
+in the subregions but not aligned well with the exact preference vectors. Similar to EPO, in Figure 3e, our method finds points that align well with the exact preferences; and in Figure 3f, our method can handle different definitions of preferences.
+
+We conduct another experiment in a more difficult setting where the initial objectives are close to the PF. In Figures 4a-4c, we consider a relatively easier case where the initial model is not too close to the Pareto optimal. For our method, by solving (3.5), a 1 = [ 1 √ 5 ; 2 √ 5 ] , a 2 = [ 2 √ 5 ; 1 √ 5 ] . The corresponding matrix A is given by A = [ a 1 , a 2 ] ⊤ . In this setting, all methods converge to the PF, and our method takes the least number of iterations (PMTL takes 100, EPO Search takes 60, and our method takes only 10 iterations). PMTL does not align exactly with the preference vectors, while EPO and our method do. In Figures 4d-4f, PMTL and our method take 200 iterations, EPO Search takes 80 iterations. Results show that for the green and yellow preferences, PMTL moves further away from the PF in the first stage, and does not perform any update in the second stage. It converges to the PF only in 2 out of 4 cases. In contrast, with controlled ascent updates, EPO and our method can converge to the PF and trace the PF until the objectives align exactly with the preferences.
+
+## 5.2 Real data
+
+Multi-patch image classification. Following [33, 41, 44], we consider three datasets for image classification, including Multi-MNIST, Multi-Fashion, and Multi-Fashion+MNIST. The two tasks or objectives in all three datasets are to classify the top-left and the bottom-right images, respectively. For a fair comparison, we use LeNet as the backbone neural network. The training losses and accuracies of different methods given different preference vectors are plotted in Figure 5. Experiments for our method are repeated 5 times. Hypervolumes with means and standard deviations are reported in Table 2. The results for other methods in Table 2 are referenced from [44].
+
+Table 2: Hypervolumes of different methods ( × 10 -2 )
+
+| Datasets          |   LS |   PMTL [33] |   EPO [41] |   XWC-MGDA [44] | FERERO      |
+|----------|------|----------|----------|----------|----------|
+| Multi-MNIST loss       | 1.68 |        1.41 |       1.35 |          1.42 | 1.97 ± 0.21 |
+| Multi-Fashion loss     | 6.75 |        5.9  |       6.02 |          6.77 | 7.76 ± 0.18 |
+| Multi-F+M loss         | 3.63 |        3.03 |       3.76 |          3.89 | 3.82 ± 0.21 |
+| Multi-MNIST accuracy   | 0.19 |        0.15 |       0.15 |          0.16 | 0.24 ± 0.04 |
+| Multi-Fashion accuracy | 0.99 |        0.87 |       0.87 |          0.99 | 1.17 ± 0.07 |
+| Multi-F+M accuracy     | 0.48 |        0.4  |       0.5  |          0.52 | 0.53 ± 0.04 |
+
+Figure 6: Losses and preferences of FERERO when the initial objective is close to the Pareto front.
+
+<!-- image -->
+
+One limitation of EPO is that the preference is defined as a ray from the origin in the objective space, whose corresponding objectives can be unattainable, e.g., the yellow preferences in Figure 5. As a result, the losses of all methods are far away from the preference vectors. In this case, a more flexible choice of preferences is helpful to ensure preference satisfaction. To demonstrate this, we conduct experiments with more flexible preferences; see the results in Figure 6, where the obtained solutions align better with the preference lines compared to those in Figure 5. Moreover, it can perform controlled ascent updates during optimization, which cannot be achieved by PMTL or XWC-MGDA.
+
+Multi-lingual speech recognition. We further apply the proposed method to the multi-objective finetuning of pre-trained multi-lingual speech models. We use the Librispeech (100 hours) [47], and AISHELL v1 [5] datasets for multi-lingual speech recognition. A conformer with 8 blocks is used as the model architecture. The total number of parameters is around
+
+Table 3: WERs (%) on Librispeech and AISHELL v1.
+
+| Method          |   English | Chinese   | Average   |
+|----------|----------|----------|----------|
+| Komatsu et al. [29] |      7.11 | -         | -         |
+| w/o CPC [51]        |     11.8  | 10.2      | 11.0      |
+| Init. (M2ASR) [51]  |      7.3  | 6.2       | 6.7       |
+| LS-FT          |      6.8  | 5.9       | 6.4       |
+| FERERO-FT          |      5.4  | 4.9       | 5.1       |
+
+64.5M with 58.4M encoder layer parameters and the rest being the classification layer parameters. We consider the objectives associated with the speech recognition Connectionist Temporal Classification (CTC) losses in Chinese and English, denoted as f ch t and f en t , respectively. We also use the self-supervised Contrastive Predictive Coding (CPC) loss f p for representation learning; that is
+
+<!-- formula-not-decoded -->
+
+where the first constraint ensures to learn a good representation with ϵ 1 = 1 . 2 , and the second constraint avoids one language loss dominates the other with ϵ 2 = 0 . 5 ; see more details in Appendix H.1.
+
+Results on the word error rate (WER) are reported in Table 3. The baselines include the state-of-the-art result from Komatsu et al. [29] without an additional large language model, our own implementation of training using only the sum of supervised CTC losses (w/o CPC), the initial pre-trained M2ASR model [51] (init.), linear scalarization of all three objectives for finetuning a pre-trained model with the CPC loss (LS-FT). Results show that considering CPC loss besides the supervised CTC loss improves the average WER by 4.2%, and this can be further improved by 0.3% by finetuning with linear scalarization. However, the LS-FT model has a much better performance in Chinese compared to English. With our proposed approach, the performance gap between different languages is reduced, and the average WER is further improved by 1.3%.
+
+## 6 Conclusions
+
+In this work, we frame preference-guided multi-objective learning as a constrained vector optimization problem. Specifically, we introduce constraints and partial order to capture the absolute and relative preferences. Under this framework, we develop algorithms to solve the constrained vector optimization problem. Our proposed algorithms use a unified formulation without solving different subprograms at different stages. And they enjoy the benefit of allowing controlled ascent and escaping weak optimal solutions. Theoretical guarantees on the non-asymptotic convergence of the deterministic algorithms and their stochastic variants are provided. Experiments on benchmark datasets demonstrate the broad applicability of the proposed algorithms.
+
+## Broader Impacts and Limitations
+
+This paper casts the preference-guided multi-objective learning as a constrained vector optimization problem and proposes an algorithm with single-loop and stochastic variants to solve the problem, which have non-asymptotic convergence guarantees. The proposed method is applied to image classification and speech recognition. The positive impact is that it is a principled method with efficient implementations that has broad applications across various domains. There is no negative social impact.
+
+The proposed algorithm is able to model flexible preferences but at a cost of higher per-iteration complexity compared to scalarization methods. The theoretical guarantees make standard assumptions that the objectives are lower bounded, Lipschitz continuous and smooth. These are common assumptions in the optimization literature, and can be satisfied for neural networks with smooth activation functions.
+
+## Acknowledgements
+
+The work of L. Chen, AFM Saif, and T. Chen was supported by the National Science Foundation (NSF) projects 2401297, 2412486, the RPI-IBM Artificial Intelligence Research Collaboration (AIRC), the Cisco Research Award, and the IEEE Signal Processing Society scholarship. The work of Y. Shen was supported by NSF ECCS-2412484. We also thank Quan Xiao, Prof. Luis Nunes Vicente, Prof. Rongjie Lai for inspiring and helpful discussions, and the anonymous reviewers for their constructive feedback to improve our paper.
+
+## References
+
+- [1] Jaqueline S Angelo, Isabella A Guedes, Helio JC Barbosa, and Laurent E Dardenne. Multi-and many-objective optimization: present and future in de novo drug design. Frontiers in Chemistry , 11, 2023.
+- [2] Cagin Ararat and Cem Tekin. Vector optimization with stochastic bandit feedback. In Proc. International Conference on Artificial Intelligence and Statistics , pages 2165-2190, Valencia, Spain, 2023.
+- [3] Peter Auer, Chao-Kai Chiang, Ronald Ortner, and Madalina Drugan. Pareto front identification from stochastic bandit feedback. In Proc. International Conference on Artificial Intelligence and Statistics , pages 939-947, Cadiz, Spain, 2016.
+- [4] Dimitri Bertsekas. Constrained Optimization and Lagrange Multiplier Methods (Optimization and Neural Computation Series) . Athena Scientific, 1996.
+- [5] Hui Bu, Jiayu Du, Xingyu Na, Bengu Wu, and Hao Zheng. Aishell-1: An open-source mandarin speech corpus and a speech recognition baseline. In Conference of the oriental chapter of the international coordinating committee on speech databases and speech I/O systems and assessment , pages 1-5, 2017.
+- [6] Richard H Byrd, Frank E Curtis, and Jorge Nocedal. An inexact sqp method for equality constrained optimization. SIAM Journal on Optimization , 19(1):351-369, 2008.
+- [7] Lisha Chen, Heshan Fernando, Yiming Ying, and Tianyi Chen. Three-way trade-off in multiobjective learning: Optimization, generalization and conflict-avoidance. Journal of Machine Learning Research , 2024.
+- [8] Wang Chen, Xinmin Yang, and Yong Zhao. Conditional gradient method for vector optimization. Computational Optimization and Applications , 85(3):857-896, July 2023.
+- [9] Frank E Curtis, Suyun Liu, and Daniel P Robinson. Fair machine learning through constrained stochastic optimization and an epsilon-constraint method. Optimization Letters , pages 1-17, 2023.
+- [10] Dmitriy Drusvyatskiy and Adrian S Lewis. Error bounds, quadratic growth, and linear convergence of proximal methods. Mathematics of Operations Research , 43(3):919-948, 2018.
+
+- [11] Jean-Antoine Désidéri. Multiple-gradient Descent Algorithm (MGDA) for Multi-objective Optimization. Comptes Rendus Mathematique , 350(5-6), 2012.
+- [12] Matthias Ehrgott. Multicriteria optimization . Springer, Berlin; New York, 2nd ed edition, 2005.
+- [13] Heshan Fernando, Lisha Chen, Songtao Lu, Pin-Yu Chen, Miao Liu, Subhajit Chaudhury, Keerthiram Murugesan, Gaowen Liu, Meng Wang, and Tianyi Chen. Variance reduction can improve trade-off in multi-objective learning. In Proc. IEEE International Conference on Acoustics, Speech, and Signal Processing , pages 6975-6979, 2024.
+- [14] Heshan Fernando, Han Shen, Miao Liu, Subhajit Chaudhury, Keerthiram Murugesan, and Tianyi Chen. Mitigating gradient bias in multi-objective learning: A provably convergent stochastic approach. In Proc. International Conference on Learning Representations , Kigali, Rwanda, May 2023.
+- [15] Jörg Fliege and Benar Fux Svaiter. Steepest descent methods for multicriteria optimization. Mathematical methods of operations research , 51:479-494, 2000.
+- [16] Jörg Fliege and A. Ismael F. Vaz. A method for constrained multiobjective optimization based on sqp techniques. SIAM Journal on Optimization , 26(4):2091-2119, 2016.
+- [17] Jörg Fliege, A Ismael F Vaz, and Luís Nunes Vicente. Complexity of Gradient Descent for Multi-objective Optimization. Optimization Methods and Software , 34(5):949-959, 2019.
+- [18] Ellen H. Fukuda and L. M. Graña Drummond. On the convergence of the projected gradient method for vector optimization. Optimization , 60(8-9):1009-1021, 2011.
+- [19] Ellen H. Fukuda and L. M. Graña Drummond. Inexact projected gradient method for vector optimization. Computational Optimization and Applications , 54:473-493, 2013.
+- [20] Bennet Gebken, Sebastian Peitz, and Michael Dellnitz. A descent method for equality and inequality constrained multiobjective optimization problems. In Numerical and Evolutionary Optimization , pages 29-61. Springer, 2019.
+- [21] Philip E Gill, Walter Murray, and Michael A Saunders. Snopt: An sqp algorithm for large-scale constrained optimization. SIAM review , 47(1):99-131, 2005.
+- [22] Chengyue Gong, Xingchao Liu, and Qiang Liu. Automatic and harmless regularization with constrained and lexicographic optimization: A dynamic barrier approach. In Proc. Advances in Neural Information Processing Systems , volume 34, pages 29630-29642, virtual, 2021.
+- [23] L. M. Graña Drummond, A. N. Iusem, and B. F. Svaiter. On first order optimality conditions for vector optimization. Acta Mathematicae Applicatae Sinica, English Series , 19(3), September 2003.
+- [24] L. M. Graña Drummond and A.N. Iusem. A projected gradient method for vector optimization problems. Computational Optimization and Applications , 28:5-29, April 2004.
+- [25] L. M. Graña Drummond and B.F. Svaiter. A steepest descent method for vector optimization. Journal of Computational and Applied Mathematics , 175(2):395-414, March 2005.
+- [26] Anmol Gulati, James Qin, Chung-Cheng Chiu, Niki Parmar, Yu Zhang, Jiahui Yu, Wei Han, Shibo Wang, Zhengdong Zhang, Yonghui Wu, et al. Conformer: Convolution-augmented transformer for speech recognition. arXiv preprint arXiv:2005.08100 , 2020.
+- [27] Johannes Jahn. Vector Optimization: Theory, Applications, and Extensions . Springer Berlin Heidelberg, Berlin, Heidelberg, 2011.
+- [28] Hamed Karimi, Julie Nutini, and Mark Schmidt. Linear convergence of gradient and proximalgradient methods under the polyak-lojasiewicz condition. arXiv preprint arXiv:1608.04636 , 2016.
+- [29] Tatsuya Komatsu, Yusuke Fujita, Jaesong Lee, Lukas Lee, Shinji Watanabe, and Yusuke Kida. Better intermediates improve CTC inference. arXiv preprint arXiv:2204.00176 , 2022.
+
+- [30] Panagiotis Kyriakis, Jyotirmoy Deshmukh, and Paul Bogdan. Pareto policy adaptation. In Proc. International Conference on Learning Representations , virtual, 2021.
+- [31] Xi Lin, Zhiyuan Yang, Xiaoyuan Zhang, and Qingfu Zhang. Pareto set learning for expensive multi-objective optimization. In Proc. Advances in Neural Information Processing Systems , volume 35, New Orleans, LA, December 2022.
+- [32] Xi Lin, Xiaoyuan Zhang, Zhiyuan Yang, Fei Liu, Zhenkun Wang, and Qingfu Zhang. Smooth tchebycheff scalarization for multi-objective optimization. arXiv preprint arXiv:2402.19078 , 2024.
+- [33] Xi Lin, Hui-Ling Zhen, Zhenhua Li, Qing-Fu Zhang, and Sam Kwong. Pareto multi-task learning. In Proc. Advances in Neural Information Processing Systems , Vancouver, Canada, December 2019.
+- [34] Bo Liu, Yihao Feng, Peter Stone, and Qiang Liu. Famo: Fast adaptive multitask optimization. In Proc. Advances in Neural Information Processing Systems , volume 36, New Orleans, LA, 2023.
+- [35] Bo Liu, Xingchao Liu, Xiaojie Jin, Peter Stone, and Qiang Liu. Conflict-Averse Gradient Descent for Multi-task Learning. In Proc. Advances in Neural Information Processing Systems , virtual, December 2021.
+- [36] Suyun Liu and Luis Nunes Vicente. The Stochastic Multi-gradient Algorithm for Multi-objective Optimization and its Application to Supervised Machine Learning. Annals of Operations Research , pages 1-30, 2021.
+- [37] Suyun Liu and Luis Nunes Vicente. Accuracy and fairness trade-offs in machine learning: A stochastic multi-objective approach. Computational Management Science , 19(3):513-537, 2022.
+- [38] Xingchao Liu, Xin Tong, and Qiang Liu. Profiling Pareto Front With Multi-Objective Stein Variational Gradient Descent. In Proc. Advances in Neural Information Processing Systems , virtual, December 2021.
+- [39] David G. Luenberger and Yinyu Ye. Linear and Nonlinear Programming , volume 116 of International Series in Operations Research &amp; Management Science . Springer US, New York, NY, 2008.
+- [40] Sohvi Luukkonen, Helle W. van den Maagdenberg, Michael T.M. Emmerich, and Gerard J.P. van Westen. Artificial intelligence in multi-objective drug design. Current Opinion in Structural Biology , 79:102537, 2023.
+- [41] Debabrata Mahapatra and Vaibhav Rajan. Multi-task learning with user preferences: Gradient descent with controlled ascent in pareto optimization. In Proc. International Conference on Machine Learning , virtual, 2020.
+- [42] Natalia Martinez, Martin Bertran, and Guillermo Sapiro. Minimax pareto fairness: A multi objective perspective. In Proc. International Conference on Machine Learning , pages 67556764, virtual, 2020.
+- [43] Kaisa Miettinen. Nonlinear Multiobjective Optimization , volume 12. Springer US, Boston, MA, 1998.
+- [44] Michinari Momma, Chaosheng Dong, and Jia Liu. A multi-objective/multi-task learning framework induced by pareto stationarity. In Proc. International Conference on Machine Learning , Baltimore, MD, 2022.
+- [45] Aviv Navon, Aviv Shamsian, Ethan Fetaya, and Gal Chechik. Learning the pareto front with hypernetworks. In Proc. International Conference on Learning Representations , virtual, April 2020.
+- [46] Aaron van den Oord, Yazhe Li, and Oriol Vinyals. Representation learning with contrastive predictive coding. arXiv preprint arXiv:1807.03748 , 2018.
+
+- [47] Vassil Panayotov, Guoguo Chen, Daniel Povey, and Sanjeev Khudanpur. Librispeech: an ASR corpus based on public domain audio books. In Proc. International Conference on Acoustics, Speech and Signal Processing , pages 5206-5210, 2015.
+- [48] Javier Peña, Juan C. Vera, and Luis F. Zuluaga. New characterizations of hoffman constants for systems of linear constraints. Mathematical Programming , 187(1):79-109, 2021.
+- [49] Hoang Phan, Ngoc Tran, Trung Le, Toan Tran, Nhat Ho, and Dinh Phung. Stochastic multiple target sampling gradient descent. In Proc. Advances in Neural Information Processing Systems , New Orleans, LA, December 2022.
+- [50] Sashank J Reddi, Suvrit Sra, Barnabás Póczós, and Alex Smola. Proximal stochastic methods for nonsmooth nonconvex finite-sum optimization. In Proc. Advances in Neural Information Processing Systems , volume 29, 2016.
+- [51] A F M Saif, Lisha Chen, Xiaodong Cui, Songtao Lu, Brian Kingsbury, and Tianyi Chen. M2ASR: Multilingual multi-task automatic speech recognition via multi-objective optimization. In Interspeech 2024 , pages 1240-1244, 2024.
+- [52] Ozan Sener and Vladlen Koltun. Multi-task learning as multi-objective optimization. In Proc. Advances in Neural Information Processing Systems , Montreal, Canada, December 2018.
+- [53] Han Shen, Quan Xiao, and Tianyi Chen. On penalty-based bilevel gradient descent method. arXiv preprint arXiv:2302.05185 , 2023.
+- [54] Hiroki Tanabe, Ellen H. Fukuda, and Nobuo Yamashita. Proximal gradient methods for multiobjective optimization and their applications. Computational Optimization and Applications , 72(2):339-361, 2019.
+- [55] Peiyao Xiao, Hao Ban, and Kaiyi Ji. Direction-oriented multi-objective learning: Simple and provable stochastic algorithms. In Proc. Advances in Neural Information Processing Systems , New Orleans, LA, 2023.
+- [56] Yijun Yang, Jing Jiang, Tianyi Zhou, Jie Ma, and Yuhui Shi. Pareto policy pool for model-based offline reinforcement learning. In Proc. International Conference on Learning Representations , virtual, 2021.
+- [57] Jane J Ye and Qiji J Zhu. Multiobjective optimization problem with variational inequality constraints. Mathematical Programming , 96(1):139-160, 2003.
+- [58] Yiming Ying and Ding-Xuan Zhou. Unregularized online learning algorithms with general loss functions. Applied and Computational Harmonic Analysis , 42(2):224-244, 2017.
+- [59] Tianhe Yu, Saurabh Kumar, Abhishek Gupta, Sergey Levine, Karol Hausman, and Chelsea Finn. Gradient surgery for multi-task learning. In Proc. Advances in Neural Information Processing Systems , virtual, December 2020.
+- [60] Shiji Zhou, Wenpeng Zhang, Jiyan Jiang, Wenliang Zhong, Jinjie Gu, and Wenwu Zhu. On the convergence of stochastic multi-objective gradient manipulation and beyond. In Proc. Advances in Neural Information Processing Systems , volume 35, pages 38103-38115, New Orleans, LA, December 2022.
+- [61] Yiheng Zhu, Jialu Wu, Chaowen Hu, Jiahuan Yan, Tingjun Hou, Jian Wu, et al. Sample-efficient multi-objective molecular optimization with gflownets. In Proc. Advances in Neural Information Processing Systems , volume 36, New Orleans, LA, 2023.
+
+## Appendix for ' FERERO: A Flexible Framework for Preference-Guided Multi-Objective Learning "
+
+## Table of Contents
+
+| A   | Notations          | Notations          |   15 |
+|-----|----------|----------|------|
+| B   | Related Works and Comparison          | Related Works and Comparison          |   15 |
+|     | B.1          | Extended related works . . . . . . . . . . . . . . . . . . . . . . .  |   16 |
+|     | B.2          | A detailed comparison with existing works . . . . . . . . . . . . .   |   17 |
+| C   | Preliminaries          | Preliminaries          |   18 |
+|     | C.1          | General cone-induced partial ordering . . . . . . . . . . . . . . . . |   18 |
+|     | C.2          | Necessary and sufficient conditions for C -optimality . . . . . . . . |   18 |
+| D   | Proof of Auxiliary Lemmas          | Proof of Auxiliary Lemmas          |   19 |
+|     | D.1          | Lagrangian of the subprogram . . . . . . . . . . . . . . . . . . . .  |   19 |
+|     | D.2          | First-order necessary optimality conditions . . . . . . . . . . . . . |   19 |
+|     | D.3          | Properties of PMOL . . . . . . . . . . . . . . . . . . . . . . . . .  |   20 |
+| E   | Proof of Theorem 1: convergence of Algorithm 1          | Proof of Theorem 1: convergence of Algorithm 1          |   25 |
+|     | E.1          | Auxiliary lemmas . . . . . . . . . . . . . . . . . . . . . . . . . .  |   25 |
+|     | E.2          | Proof of Theorem 1 . . . . . . . . . . . . . . . . . . . . . . . . .  |   27 |
+| F   | Proof of Theorems 2 and 3: convergence of Algorithm 2    | Proof of Theorems 2 and 3: convergence of Algorithm 2          |   30 |
+|     | F.1          | Auxiliary lemmas . . . . . . . . . . . . . . . . . . . . . . . . . .  |   30 |
+|     | F.2          | Analysis with the same merit function: proof of Theorem 2 . . . . .   |   31 |
+|     | F.3          | Sharper analysis with a different merit function: proof of Theorem 3  |   34 |
+| G   | Stochastic Algorithms          | Stochastic Algorithms          |   40 |
+|     | G.1          | Algorithm summary . . . . . . . . . . . . . . . . . . . . . . . . .   |   40 |
+|     | G.2          | Proof of Theorem 4: convergence of Algorithm 3 . . . . . . . . . .    |   40 |
+| H   | Implementation Details and Additional Experiment Results | Implementation Details and Additional Experiment Results          |   44 |
+|     | H.1          | Implementation details . . . . . . . . . . . . . . . . . . . . . . .  |   44 |
+|     | H.2          | Additional experiment results . . . . . . . . . . . . . . . . . . . . |   45 |
+
+## A Notations
+
+A summary of notations used in this work is listed in Table 4 for ease of reference.
+
+̸
+
+Recall that given vectors v, w , we use v &lt; w and v ≤ w to denote v i &lt; w i for all i , and v i ≤ w i for all i , respectively. We use v ⪇ w to denote v ≤ w and v = w , and define &gt;, ≥ , ⪈ analogously. In the proof, we use ∥ · ∥ to denote the ℓ 2 -norm, and ∥ · ∥ 1 to denote the ℓ 1 -norm. We use | · | ab to denote the operator that takes element-wise absolute value of a matrix. We use 1 and 0 to denote the all-one and all-zero vectors, respectively. Their dimensions are specified only when they are not clear in the context. We use [ v, w ] to represent column concatenation of matrices or vectors, and use [ v ; w ] to represent row concatenation of matrices or vectors.
+
+## B Related Works and Comparison
+
+In this section, we provide a detailed review and comparison of additional related works in multitask/objective learning, vector optimization, and Pareto front approximation.
+
+Table 4: Notations and their descriptions.
+
+| Notations          | Descriptions          |
+|----------|----------|
+| θ ∈ R q ξ f ξ,m ( θ ) , f m ( θ ∇ f m ( θ ) F ξ ( θ ) , F ( θ ) ∇ F ( θ ) | Model parameter, or decision variable Stochastic samples during training A scalar-valued objective function evaluated on data point ξ , with f ξ,m : R q → R , or on dataset D , f m , with f m := 1 &#124; D &#124; ∑ ξ ∈ D f ξ,m ( θ ) Gradient of f m ( θ ) , with ∇ f m : R q → R q A vector-valued objective function evaluated on data point ξ , with F ξ : R q → R M , or on dataset D , with F := 1 &#124; D &#124; ∑ ξ ∈ D F ξ ( θ ) Gradient of F ( θ ) , with ∇ F : R q → R q × M |
+| α          | Step size to update model parameter          |
+| )          |          |
+|          | θ          |
+| γ          | Step size to update multiplier λ          |
+
+## B.1 Extended related works
+
+In this section, we provide an extended discussion of the works that are closely related to ours.
+
+Variants and analysis of MGDA. MGDA[15, 11] finds non-conflicting or the steepest common descent direction at each iteration, which we term as conflict-avoidant (CA) direction. Our work is related to MGDA in the unconstrained setting since when C A = R M + , M g = M h = 0 , i.e., there are no constraints, and Ω λ f ( θ ) = ∆ M for the subprogram, our Algorithm 1 reduces to MGDA. Nonasymptotic convergence analysis for the deterministic MGDA was first provided in [17]. Convergence of the proximal algorithm was discussed in [54]. Later on, stochastic variants of MGDA were developed with convergence analysis [36, 60, 14, 7, 55, 13]. A critical challenge in developing convergent stochastic MGDA is that the CA directions can be biased even if they are calculated from unbiased stochastic gradients of the objectives. This issue can be mitigated using variance reduction techniques on the stochastic gradients. For example, one can use increased batch size [36], or momentum-based methods [60, 14, 13]. Alternatively, one can also use double (independent) sampling [7, 55]. Among these MGDA variants, [60, 14, 13, 7] also use single-loop updates, where, instead of exactly solving the weight to combine the objective gradients, the weight is approximately updated only once at each iteration. One benefit of such gradient-based single-loop update is that the approximation approach proposed in [34, Section 3.2] can be applied to largely improve the per-iteration complexity by eliminating the need to compute multiple gradients.
+
+Convergence rate to Pareto stationarity of the above MGDA variants is discussed in existing literature. Specifically, the analysis in [36] focuses on the convex case, while the rest [60, 14, 7, 55, 13] focus on the nonconvex case. However, with merely convergence to the Pareto stationarity, the theoretical benefit of MGDA variants over linear scalarization is unclear. To address this, convergence of the stochastic approximate CA direction to the deterministic optimal CA direction besides convergence to the Pareto stationarity is first analyzed in [14], and later improved in [7] with relaxed assumptions and/or faster convergence rate. Some of the improved analysis techniques in [7] has been applied in [13] to further improve the convergence rate with a momentum-based algorithm, and in [55] with a double-loop algorithm. Moreover, it is discussed in [7] that the analysis technique is widely applicable to other algorithms, such as the SMG algorithm [36] in the nonconvex case for both convergence to Pareto stationarity and to the CA direction. In our proof of Theorem 2, the convergence of the single-loop algorithm, we use similar techniques as in [7], which are detailed in Appendix F.2.
+
+Pareto front approximation. Pareto front approximation aims to find multiple different solutions whose objective values approximate the Pareto front. Scalarization-based methods can be used to approximate the Pareto front by enumerating different weights of the objectives. However, they cannot find solutions on the nonconvex part of the Pareto front [43]. Decomposition-based methods partition the objective space into different subsets with constraints that represent different trade-off preferences, and solve the resulting constrained multi-objective optimization problems with gradientbased or evolutionary algorithms [33, 22]. Probabilistic inference methods update a set of models following a distribution that converges to Pareto stationary [38, 49]. The expected update direction of the models typically follows the steepest common descent direction for all objectives. Pareto set learning methods use a neural network to learn a mapping from user preferences to corresponding
+
+models. The learned neural network is able to generate different models with different input user preferences [45, 56, 30, 31]. Although we do not focus on Pareto front approximation in this work, our algorithm can be applied to generate different models based on different diverse preferences to approximate the Pareto front, as in [33].
+
+## B.2 A detailed comparison with existing works
+
+Preferences as linear constraints of objectives. Different constraints S partition the objectives into sub-regions, as shown in Figure 1. Many preferences can be modeled by linear equality or inequality constraints [33, 41, 44]. For example, below we list different choices of C for different methods in Figure 1.
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+In Figure 1a, the preferences are based on the function values of f 1 controlled by different thresholds, corresponding to the inequality constraints defined by (a). In Figure 1b, the constraints are that the objectives F ( θ ) should lie on one of the preference vectors v , therefore should satisfy the equality constraint B h F ( θ ) = 0 .
+
+Detailed comparison with the most relevant works. Below we provide a fine-grained comparison with some existing works in Table 5, as an extension of Table 1.
+
+In terms of preference modeling, the scalarization-based methods such as Linear Scalarization and Smooth Tchebycheff scalarization use weight of different objectives to model preferences. They are not flexible enough to capture preferences illustrated in Figure 1. PMTL uses a constrained multi-objective optimization formulation, with preferences modeled by inequalities. EPO models the preference by an r -1 ray, same as the example given in Figure 1b. (X)WC-MGDA uses a shifted ray not necessarily from the origin to model the preferences. In all of these works, they only model the absolute preferences that define the preferred objective values. In contrast, we also consider the relative preference that define the relative improvement directions of objectives.
+
+In addition to the comparison in Table 1, our framework enjoys additional benefits including the ability to escape weak optimal solutions and to maintain scale-invariance. These abilities are attributed to the subprogram that is adaptive to the objective values, as detailed in Lemma 6.
+
+Table 5: Comparison to existing PMOL methods, extension of Table 1.
+
+| Method          | Handle nonconvex PF   | General partial order   | Single subprogram w/o computing active index   | Scale invariance   | Escape weak optimal   | Provable CQ    |
+|----------|----------|----------|----------|----------|----------|----------|
+| Linear Scalarization      | ✗          | ✗          | ✓          | ✗          | ✗          | -          |
+| (Smooth) Tchebycheff [32] | ✓          | ✗          | ✓          | ✗          | ✗          | -          |
+| PMTL [33]          | ✓          | ✗          | ✗          | ✗          | ✗          | assume LICQ    |
+| EPO [41]          | ✓          | ✗          | ✗          | ✗          | ✓          | ✗          |
+| (X)WC-MGDA [44]          | ✓          | ✗          | ✗          | ✗          | ✓          | ✗          |
+| FERERO (ours)          | ✓          | ✓          | ✓          | ✓          | ✓          | prove calmness |
+
+Below, we further summarize the reasons behind the benefits of our proposed method. We use ' → ' to indicate the reasons on the left and the corresponding benefits on the right.
+
+<!-- image -->
+
+## C Preliminaries
+
+In this section we introduce preliminaries on the general cone-induced partial ordering and the corresponding optimality conditions for completeness since we use these concepts in our proofs. Then we discuss the relation between the Pareto optimality and the optimality induced by a general polyhedral cone.
+
+## C.1 General cone-induced partial ordering
+
+In this section, we introduce basic definitions, lemmas, propositions, and theorems in vector optimization, including the cone-induced partial ordering, the minimum and weakly minimum associated with the partial ordering in real linear space, and necessary conditions for minimum. These concepts are defined in [27]. We restate them following our notations for completeness. We denote Z as a real linear space, C, S as subsets in Z , and w,x,y, z as points or elements in Z , 0 Z as the zero vector in the space Z .
+
+Definition 4 (Cone) . Let C be a nonempty subset of a real linear space Z
+
+The set C is called a cone , if y ∈ C, λ ≥ 0 = ⇒ λy ∈ C
+
+. .
+
+Lemma 3 (Convex cone) . A cone C in a real linear space is convex if and only if C + C ⊂ C.
+
+Definition 5 (Partially ordered linear space) . A real linear space equipped with a partial ordering is a partially ordered linear space.
+
+Proposition 1. (a) If ≤ is a partial ordering on Z , then the set C := { z ∈ Z | 0 Z ≤ z } is a convex cone. If, in addition, ≤ is antisymmetric, then C is pointed.
+
+(b) If C is a convex cone in Z , then the binary relation ≤ C := { ( x, y ) ∈ Z × Z | y -x ∈ C } is a partial ordering on Z . If, in addition, C is pointed, then ≤ C is antisymmetric.
+
+Definition 6 (Ordering cone) . A convex cone characterizing a partial ordering in a real linear space is an ordering cone.
+
+Definition 7 (Cone-induced partial ordering) . Let C be a closed pointed convex cone of R M , with nonempty interior. The partial order in R M induced by C, ≤ C is defined by
+
+<!-- formula-not-decoded -->
+
+The relation induced by int( C ) in R , &lt; is defined by
+
+M C
+
+<!-- formula-not-decoded -->
+
+Definition 8 ( C -minimum and C -weakly minimum) . Let S be a nonempty subset of a partially ordered linear space with an ordering cone C , then
+
+̸
+
+(a) an element z ∈ S is called a C -minimum of the set S , if ( { z } -C ) ∩ S ⊂ { z } + C , in other words, there exists no other z ′ ∈ S with z ′ ≤ C z and z ′ = z ;
+
+̸
+
+(b) an element z ∈ S is called a C -weakly minimum of the set S , if ( { z } -int( C )) ∩ S = ∅ , where int( C ) = ∅ is the algebraic interior of C , in other words, there exists no other z ′ ∈ S with z ′ &lt; C z and z ′ = z .
+
+̸
+
+Definition 9 ( C -stationary) . A point θ ∈ R q is C -stationary if there is no first-order common descent direction d ∈ R q that ∇ F ( θ ) ⊤ d ∈ -int( C ) , i.e., range( ∇ F ( θ ) ⊤ ) ∩ ( -int( C )) = ∅ .
+
+## C.2 Necessary and sufficient conditions for C -optimality
+
+Note that, when C = R M + := { z ∈ R M | z m ≥ 0 for all m ∈ [ M ] } , C -minimum and C -weakly minimum in Definition 8 are Pareto minimum and weakly Pareto minimum, respectively. Recall that F : R q → R M is a continuously differentiable function. The problem we consider is to find the unconstrained C -minimizers of F , denoted as min C F ( θ ) with θ ∈ R q . We then proceed to introduce the relation between C -stationarity and Pareto stationarity in this section.
+
+Proposition 2. Let C be a closed convex pointed cone.
+
+1) Suppose C ⊆ R M + . If θ is Pareto stationary, θ is C -stationary. In other words, C -stationarity is a necessary condition for Pareto stationarity.
+
+2) Suppose R M + ⊆ C . if θ is C -stationary, θ is Pareto stationary. In other words, C -stationarity is a sufficient condition for Pareto stationarity.
+
+Proof of Proposition 2. 1) By definition, if θ is Pareto stationary, then range( ∇ F ( θ ) ⊤ ) ∩ ( -int( R M + )) = ∅ . Since C ⊆ R M + , then -int( C ) ⊆ -int( R M + ) , and we have
+
+<!-- formula-not-decoded -->
+
+Therefore, θ is C -stationary.
+
+Following similar arguments, 2) can also be proved.
+
+## D Proof of Auxiliary Lemmas
+
+In this section, we provide proof of the main theoretical results in this paper.
+
+## D.1 Lagrangian of the subprogram
+
+Proof of subprogram reformulation. Define the Lagrangian function
+
+<!-- formula-not-decoded -->
+
+where λ f ∈ R M + , λ g ∈ R M g + , λ h ∈ R M h . By the first-order optimality condition w.r.t. d and c , we can obtain that
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+Combining the last equation with λ f ∈ R M + , we obtain λ ∗ f ∈ Ω λ f ( θ ) . Plugging the above results into the Lagrangian function gives
+
+<!-- formula-not-decoded -->
+
+which leads to the dual form in (2.3). Since (2.1) is a constrained convex optimization problem where the Slater's condition holds, therefore, the duality gap is zero.
+
+Remark 4. Note that we can also have a simplified subprogram with A = I , and without adaptation to the objective values, as defined below
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+This formulation corresponds to the SQP method applied to the constrained MOO problem [16]. Then the corresponding Lagrangian function becomes
+
+<!-- formula-not-decoded -->
+
+By the first-order optimality condition w.r.t. c , (D.3) can be replaced by
+
+<!-- formula-not-decoded -->
+
+And the rest results remain the same, i.e., (D.2) and (D.4) still hold, while Ω λ f = ∆ M .
+
+## D.2 First-order necessary optimality conditions
+
+We then discuss the first-order necessary optimality conditions for problem (PMOL). We begin the discussion with the geometric notions of improving and feasible directions.
+
+Improving directions. The improvement directions are defined as generalized common descent directions so that the iterates strictly improve or dominate the previous iterates based on C A , i.e., F ( θ t ) -F ( θ t +1 ) ∈ int( C A ) . Denote d t ∈ R q as an update direction at iteration t , and α t &gt; 0 as the step size at the t -th iteration. The general update equation given update direction d t is θ t +1 = θ t + α t d t . Based on first-order Taylor expansion, the amount of improvement at iteration t can be approximately expressed as F ( θ t ) -F ( θ t +1 ) ≈ -α t ∇ F ( θ t ) ⊤ d t ∈ int( C A ) . We term such directions the general C A -improving directions. The cone of C A -improving directions at x is
+
+<!-- formula-not-decoded -->
+
+When A = I M , they are common descent directions.
+
+Feasible directions. Similar to the concept in constrained single objective optimization, the feasible directions are those that ensure F ( θ t + α t d t ) ∈ S . We rewrite problem (PMOL) with explicit C A -induced partial ordering as
+
+<!-- formula-not-decoded -->
+
+where G : R q → R M g , H : R q → R M h are linear functions of F , and are differentiable. Let I = { i | G i ( θ ) = 0 } be the index set of the active inequality constraints in G ( θ ) , and G I ( θ ) = [ · · · , G i ( θ ) , · · · ] ⊤ for i ∈ I . A subset of the feasible directions described by the gradients of the equality and active inequality constraints at θ is given by
+
+<!-- formula-not-decoded -->
+
+A necessary optimality condition is that there exists no feasible and improving directions at θ , i.e., D C A ∩ D g ∩ D h = ∅ . An algebraic description of the necessary optimality conditions for (PMOL) is summarized below.
+
+̸
+
+Proposition 3 (First-order necessary optimality conditions for (PMOL)) . Let C A := { y ∈ R M | Ay ≥ 0 } that satisfies int( C A ) = ∅ . If ¯ θ solves (PMOL) locally, then there exists λ f ∈ R M + , λ g ∈ R M g + , [ λ f ; λ g ] = 0 , and λ h ∈ R M h that
+
+̸
+
+<!-- formula-not-decoded -->
+
+Proof of Proposition 3. The geometric description D C A ∩ D g ∩ D h = ∅ is equivalent to that the linear system below w.r.t. d is inconsistent
+
+<!-- formula-not-decoded -->
+
+By the Motzkin's transposition theorem, system (D.11) being inconsistent is equivalent to that the following linear system w.r.t. p, λ h has a solution with p ⪈ 0
+
+<!-- formula-not-decoded -->
+
+Letting p = [ λ f ; λ g,I ] , where λ g,I = [ · · · ; λ g,i ; · · · ] , i ∈ I , and λ g,i ′ = 0 , for all i ′ / ∈ I completes the proof.
+
+̸
+
+Remark 5. Notice that, Proposition 3 provides a Fritz John (FJ)-type first-order necessary optimality condition, which has been discussed in prior works such as [57, Theorem 1.2] with additional variational inequality constraints, and [23, Section 3, (2)-(5)] with inequality constraints only. We provide the derivation for our problem here for completeness. In the FJ-type necessary optimality condition, the multiplier λ f associated with the objective F ( θ ) can be zero if | I | ≥ 1 , which is undesirable. We need additional constraint qualifications to ensure the condition in (D.10) with λ f = 0 , i.e., the KKT condition, is also a necessary optimality condition. This is equivalent to µ 0 = 1 , and without considering the variational inequality constraints in [57, Theorem 1.2]. The constraint qualification is discussed in detail in Appendix D.3.2.
+
+## D.3 Properties of PMOL
+
+In this section, we discuss the properties of PMOL and their proofs. These include the properties of the subprogram in Lemma 1, and the calmness CQ of PMOL in Lemma 2.
+
+## D.3.1 Proof of Lemma 1: properties of the subprogram
+
+Lemma 6 (Additional properties of the subprogram) . For the subprogram (2.3) , the following properties hold:
+
+1. The solution d ∗ ( θ ) is unique.
+2. If θ is a local weak optimal solution with AF ( θ ) &gt; 0 , then d ∗ ( θ ) = 0 , ψ ( θ ) = 0 . Otherwise, if θ is not a local weak optimal solution, then d ∗ ( θ ) = 0 , ψ ( θ ) &lt; 0 , and when θ is feasible,
+
+̸
+
+<!-- formula-not-decoded -->
+
+3. (Ability to escape weak optimal solutions). Let θ be a weak optimal solution, with ( AF ( θ )) m = 0 for some m ∈ [ M ] . If there exists feasible and non-strictly improving directions at θ with A ∇ F ( θ ) ⊤ d ⪇ 0 , then d ∗ ( θ ) = 0 , ψ ( θ ) &lt; 0 . Otherwise, if there exists no feasible and non-strictly improving directions at θ with A ∇ F ( θ ) ⊤ d ⪇ 0 , then d ∗ ( θ ) = 0 , ψ ( θ ) = 0 .
+
+̸
+
+4. (Scale invariance) Suppose there are only equality constraints, i.e., M g = 0 , and M h = M -1 , B h is full row rank and is selected such that B h ( F ( θ 1 ) -F ( θ 2 )) = 0 with F ( θ 1 ) , F ( θ 2 ) being two different reference points in the objective space. For all θ ∈ R q that are feasible, i.e., H ( θ ) = 0 , when A = I , the normalized solution d ∗ ( θ ) / ∥ d ∗ ( θ ) ∥ does not change when the objective F ( θ ) is scaled by an arbitrary positive diagonal matrix.
+
+Proof of Lemma 6. For Property-1 , the uniqueness of d ∗ ( θ ) follows from the strict convexity of the objective function w.r.t. the direction d .
+
+For Property-2 , in the first case if θ is a local optimal solution, by definition, there exists no feasible and improving directions d such that A ∇ F ( θ ) ⊤ d &lt; 0 . Let Ω d ( θ ) be the set of d ∈ R q that satisfy the constraints in (2.1), i.e.,
+
+<!-- formula-not-decoded -->
+
+Then, since AF ( θ ) &gt; 0 , for all d ∈ Ω d ( θ ) ,
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+And since AF ( θ ) &gt; 0 , it holds that
+
+<!-- formula-not-decoded -->
+
+with ψ ( θ ) = 0 attainable by taking d = 0 ∈ Ω d ( θ ) . The first case of Property-2 is proved.
+
+In the second case, if θ is not a local weak optimal solution, then there exists d ∈ Ω d ( θ ) such that A ∇ F ( θ ) ⊤ d &lt; 0 . Taking σ = -max m ∈ [ M ] ( A ∇ F ( θ ) ⊤ d ) m ( 1 ⊤ AF ( θ )) / ( ( AF ( θ )) m ∥ d ∥ 2 ) , and d σ = σd , then
+
+<!-- formula-not-decoded -->
+
+̸
+
+Thus d ∗ ( θ ) = 0 . Recall that
+
+<!-- formula-not-decoded -->
+
+where by the feasibility and optimality conditions,
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+Combining the above with (D.19), we have
+
+<!-- formula-not-decoded -->
+
+where the last inequality uses the fact that θ is feasible, and G ( θ ) ≤ 0 , H ( θ ) = 0 .
+
+Then it holds that
+
+<!-- formula-not-decoded -->
+
+Therefore, Property-2 holds.
+
+For Property-3 , let I ⊆ [ M ] be the set such that ( AF ( θ )) m = 0 for all m ∈ I , then (2.1) is equivalent to
+
+<!-- formula-not-decoded -->
+
+̸
+
+In the first case, if there exists feasible and non-strictly improving directions at θ with A ∇ F ( θ ) ⊤ d ⪇ 0 , then such d = 0 , d ∈ Ω d . Following similar arguments as (D.18) by taking σ = -max m ∈ [ M ] \ I ( A ∇ F ( θ ) ⊤ d ) m ( 1 ⊤ AF ( θ )) / ( ( AF ( θ )) m ∥ d ∥ 2 ) , and d σ = σd , then
+
+<!-- formula-not-decoded -->
+
+̸
+
+And the corresponding d ∗ ( θ ) = 0 .
+
+In the second case, if there exists no feasible and non-strictly improving directions at θ , then for all d ∈ Ω d ( θ ) ,
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+And since ( AF ( θ )) m &gt; 0 for all m ∈ [ M ] \ I , it holds that
+
+<!-- formula-not-decoded -->
+
+with ψ ( θ ) = 0 if and only if d = 0 ∈ Ω d ( θ ) .
+
+Combining the above arguments, Property-3 is proved.
+
+For Property-4 , let d ∗ ( θ ) be the solution to the original problem (2.1) without inequality constraints. Using the fact that H ( θ ) = 0 , and letting λ = A ⊤ λ f + B ⊤ h λ h = λ f + B ⊤ h λ h , then the original dual problem can be written as
+
+<!-- formula-not-decoded -->
+
+where Ω ˜ λ ( θ ) = ( Ω λ f ( θ ) ) + B ⊤ h ( R M h ) , and Ω λ f ( θ ) = { λ f ∈ R M + | λ f ⊤ F ( θ ) = 1 ⊤ F ( θ ) } .
+
+Suppose the objective is scaled by a positive diagonal matrix Λ ∈ R M × M , then the scaled subprogram has a dual given by
+
+<!-- formula-not-decoded -->
+
+where Ω ˜ λ ( θ ; Λ) = ( Ω λ f ( θ ; Λ) ) + B ′ h ⊤ ( R M h ) , and Ω λ f ( θ ; Λ) = { λ f ∈ R M + | λ f ⊤ Λ F ( θ ) = 1 ⊤ Λ F ( θ ) } . Letting λ ′ = Λ λ , then
+
+<!-- formula-not-decoded -->
+
+where Ω ˜ λ ′ ( θ ; Λ) = Λ ( Ω λ f ( θ ; Λ) ) +Λ B ′⊤ h ( R M h ) . The set Λ ( Ω λ f ( θ ; Λ) ) can be written as
+
+<!-- formula-not-decoded -->
+
+Notice that,
+
+<!-- formula-not-decoded -->
+
+where c s = 1 ⊤ Λ F ( θ ) / ( 1 ⊤ F ( θ )) . Therefore, Λ ( Ω λ f ( θ ; Λ) ) = c s ( Ω λ f ( θ ) ) .
+
+Also note that, B h ∈ R ( M -1) × M is full row rank, and is selected based on F ( θ ) , which satisfies
+
+<!-- formula-not-decoded -->
+
+where F ( θ 1 ) , F ( θ 2 ) are two reference points which fully defines the kernel of B h . Similarly, when F ( θ ) is scaled by Λ , the corresponding B ′ h satisfies
+
+<!-- formula-not-decoded -->
+
+This further implies
+
+<!-- formula-not-decoded -->
+
+Combining with Λ ( Ω λ f ( θ ; Λ) ) = c s ( Ω λ f ( θ ) ) , it holds that
+
+<!-- formula-not-decoded -->
+
+Therefore, the solution of ˜ λ and λ ′ is only subject to a scaling factor, which does not change the direction of d ∗ ( θ ) . This proves Property-4, the scale invariance.
+
+Remark 7. Note that, Property 3, the ability to escape weak optimal solutions, and Property 4, the scale invariance, come from the subprogram design that is adaptive to the objectives. For the simplified subprogram that is not adaptive to the objectives, these two properties no longer hold, but Properties 1 and 2 still hold.
+
+## D.3.2 Proof of Lemma 2: calmness of PMOL
+
+Example 1. Let F : R q → R 2 . Consider the problem below as a special case of (PMOL), given by
+
+<!-- formula-not-decoded -->
+
+̸
+
+For ¯ θ = arg min θ ∈ R q f 2 ( θ ) , we have ∇ f 2 ( ¯ θ ) = 0 , and ¯ θ satisfies (D.10) with λ = [0 , 1] ⊤ = 0 and λ h = 1 . However, ∇ H ( ¯ θ ) = ∇ f 2 ( ¯ θ ) = 0 violates the LICQ, the Slater's CQ, and the MFCQ.
+
+Below we restate the definition of the Calmness condition for PMOL [57], which generalizes the calmness condition in single-objective optimization.
+
+Definition 10 (Calmness condition for PMOL [57, Restatement of Definition 4.5]) . Let ¯ θ be a local solution to (PMOL). We say the PMOL problem satisfies the calmness condition at ¯ θ provided that there exists ϵ &gt; 0 and a Lipschitz function ϕ : R M g + M h → R M satisfying ϕ (0 , 0) = 0 such that there exists no ( θ, p, q ) ∈ [( ¯ θ, 0 , 0) + ϵ B ] / { ( ¯ θ, 0 , 0) } satisfying
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+Our proof relies on the following relative form of Hoffman error bound, which bounds the distance of a point to a nonempty solution set defined by constraints by a measure of the constraint violation of the point.
+
+̸
+
+Lemma 8 (Relative form of Hoffman error bound [48, Proposition 5]) . Given B h ∈ R k H × M , b h ∈ R k H , B g ∈ R k G × M , b g ∈ R k G , define Σ( p, q ) := { y ∈ R M | B g y + b g ≤ p, B h y + b h = q } , and dom Σ := { ( p, q ) | Σ( p, q ) = ∅} . Let Ω R ⊆ R M be a reference polyhedron (e.g., one defined by the intersection of half-spaces). Then for all u ∈ Ω R , and ( p, q ) ∈ dom Σ , there exists a relative Hoffman constant c hof depending only on B g , B h , Ω R such that
+
+<!-- formula-not-decoded -->
+
+where ( B g u + b g -p ) + := max { 0 , B g u + b g -p } which replaces each negative component of B g u + b g -p by zero, and dist( u, Ω) := inf u ′ ∈ Ω ∥ u -u ′ ∥ .
+
+Proof of Lemma 2. We first construct ϕ ( p, q ) = c hof ∥ [ p ⊤ , q ⊤ ] ⊤ ∥ A -1 1 M , where c hof is the Hoffman constant upper bound in Lemma 8. Then ϕ (0 , 0) = 0 , and ϕ ( p, q ) is Lipschitz because
+
+<!-- formula-not-decoded -->
+
+Next we prove the PMOL calmness condition holds by contradiction. Suppose for every ϵ &gt; 0 , there exists ( ˆ θ, p, q ) ∈ [( ¯ θ, 0 , 0) + ϵ B ] / { ( ¯ θ, 0 , 0) } satisfying (D.37).
+
+Define Ω F 1 := { F ( θ ) ∈ Σ(0 , 0) | θ ∈ R q } ̸ = ∅ , there exists ˜ θ ∈ R q such that F ( ˜ θ ) ∈ Ω F 1 and ∥ F ( ˜ θ ) ∥ &lt; ∞ . We then consider the following two cases:
+
+̸
+
+̸
+
+̸
+
+Case 1: F ( ˆ θ ) ∈ Σ(0 , 0) . In this case, ( ˆ θ, p, q ) = ( ˆ θ, 0 , 0) = ( ¯ θ, 0 , 0) , thus ˆ θ = ¯ θ . Take ˜ θ = ˆ θ = ¯ θ . Case 2: F ( ˆ θ ) / ∈ Σ(0 , 0) . Take ˜ θ such that F ( ˜ θ ) ∈ Ω F 1 , then F ( ˜ θ ) = F ( ˆ θ ) .
+
+̸
+
+In both cases, let Ω R be the convex hull of { F ( ˆ θ ) , F ( ˜ θ ) } , i.e., Ω R = conv( { F ( ˜ θ ) , F ( ˆ θ ) } ) . Then Ω R is a line segment (or reduces to a point in case 1 ), thus a polyhedron. Since Σ(0 , 0) is a line, F ( ˜ θ ) ∈ Σ(0 , 0) ∩ Ω R , thus Σ(0 , 0) ∩ Ω R = Ω R = { F ( ˜ θ ) } in case 1 , and Σ(0 , 0) ∩ Ω R = { F ( ˜ θ ) } in case 2 . Therefore, in both cases,
+
+<!-- formula-not-decoded -->
+
+where dist( F, Ω) := inf F ′ ∈ Ω ∥ F -F ′ ∥ .
+
+We also have
+
+<!-- formula-not-decoded -->
+
+where ( a ) follows from Lemma 8; ( b ) follows from (D.37) that 0 ≤ ( B g F ( ˆ θ ) + b g ) + ≤ ( -p ) + , B h F ( ˆ θ ) + b h = -q , and that c hof (Ω R ) ≤ c hof for different bounded Ω R . Multiplying ∥ A ∥ 1 M on both sides of the above inequality yields
+
+<!-- formula-not-decoded -->
+
+It can then be derived that
+
+<!-- formula-not-decoded -->
+
+By rearranging the above inequality and applying (D.37c), we have that
+
+<!-- formula-not-decoded -->
+
+which contradicts to that ¯ θ is a global solution to (PMOL).
+
+Therefore, the PMOL calmness condition in Definition 10 is satisfied.
+
+## E Proof of Theorem 1: convergence of Algorithm 1
+
+Recall that, we let λ = [ λ f ; λ g ; λ h ] ∈ R M + M g + M h , A ag = [ A ; B g ; B h ] ∈ R ( M + M g + M h ) × M , and use the following concise notation
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+In the following discussion in this section, we first present the supporting lemmas and their proofs, then provide the proof of Theorem 1.
+
+## E.1 Auxiliary lemmas
+
+Lemma 9 is a result from the smoothness of F ( θ ) , and thus the smoothness of G ( θ ) and H ( θ ) , whose smoothness constants depend on B g and B h , respectively.
+
+Lemma 9. Suppose Assumptions 1, 2 hold. Then for all θ, θ ′ ∈ R q , and all λ f ∈ R M , we have
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+Proof. By Assumption 2, it holds that λ ⊤ f AF ( θ ) is ∥ A ⊤ λ f ∥ 1 ℓ f, 1 -smooth. By the definition of smoothness, we have
+
+<!-- formula-not-decoded -->
+
+Let B g,m and B h,m be the m -th row of B g and B h , respectively, then by the ℓ f, 1 -smoothness of F ( θ ) , B g,m F ( θ ) is ℓ f, 1 ∥ B g,m ∥ 1 -smooth for all m ∈ [ M g ] . Also because ∥ B g,m ∥ 1 ≤ ∥ B ⊤ g ∥ ∞ , 1 where ∥ B ⊤ g ∥ ∞ , 1 = max m ∈ M g ∥∥ B g,m ∥ 1 ∥ , g m ( θ ) is ℓ f, 1 ∥ B ⊤ g ∥ ∞ , 1 -smooth for all m ∈ [ M g ] . By the definition of smoothness, it holds that
+
+<!-- formula-not-decoded -->
+
+Following similar arguments as the above for G ( θ ) , (E.4) can be proved.
+
+Lemma 10. For the subprogram (2.3) or equivalently (E.1) , it holds that for any λ ∈ Ω λ ( θ ) ,
+
+<!-- formula-not-decoded -->
+
+Proof of Lemma 10. Since φ ( λ ; θ ) is a convex function w.r.t. λ , by the first order optimality condition, it holds that for all λ ∈ Ω λ ( θ )
+
+<!-- formula-not-decoded -->
+
+which can be further written as
+
+<!-- formula-not-decoded -->
+
+This completes the proof.
+
+We next prove Lemma 11, which can be viewed as a descent lemma for [ G ( θ )] + and | H ( θ ) | ab based on the smoothness of G ( θ ) and H ( θ ) , as well as proper hyperparameter choices. This is crucial for proving the convergence result in Theorem 1. One key technical challenge in proving the lemma is that even though G ( θ ) and H ( θ ) are smooth, [ G ( θ )] + and | H ( θ ) | ab are not. We address this challenge by exploiting the fact that ∇ G ( θ t ) ⊤ d ∗ ( θ t ) ≤ -c g G ( θ t ) and ∇ H ( θ t ) ⊤ d ∗ ( θ t ) = -c g H ( θ t ) , as well as choosing α t properly depending on c g and c h .
+
+Lemma 11. Let ϵ ≥ 0 be a constant. Define [ y ] + := max { y, 0 } which replaces each negative component of y by zero, and | y | ab replaces each component of y by its absolute value. Let { θ t } be the sequence produced by Algorithm 1 with the update θ t +1 = θ t + α t d t , where d t satisfies the constraints of the subprogram (2.1) up to an error of ϵ , i.e.,
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+If α t ≤ min { c -1 g , c -1 h } , then it holds that
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+Proof. By the smoothness of G ( θ ) in Lemma 9 and ∇ G ( θ ) ⊤ d + c g G ( θ ) ≤ [ ∇ G ( θ ) ⊤ d + c g G ( θ )] + ≤ ϵ 1 , it holds that
+
+<!-- formula-not-decoded -->
+
+For all m ∈ [ M g ] , since G ( θ t ) ≤ [ G ( θ t )] + , it holds that
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+It can be further derived that
+
+<!-- formula-not-decoded -->
+
+where the last inequality holds since 1 -α t c g ≥ 0 . Plugging this inequality back into (E.16), yields that when g m ( θ t +1 ) ≥ 0 ,
+
+<!-- formula-not-decoded -->
+
+When g m ( θ t +1 ) &lt; 0 , we have
+
+<!-- formula-not-decoded -->
+
+Combining (E.18) and (E.19) proves (E.12).
+
+By the smoothness of H ( θ ) and |∇ H ( θ ) ⊤ d + c h H ( θ ) | ab ≤ ϵ 1 , we have
+
+<!-- formula-not-decoded -->
+
+where the last equality holds because 1 -α t c h ≥ 0 , which proves (E.13).
+
+## E.2 Proof of Theorem 1
+
+In this section, we prove Theorem 1. Similar to the proof techniques used in [7], we use λ ⊤ f AF ( θ t ) with a fixed λ f ∈ Ω λ f ( θ ) as a part of the Lyapunov function, instead of using the dynamically changing λ f,t . This eliminates the need to assume the objective values are bounded above in our theorem.
+
+Proof of Theorem 1. To consider both objective function minimization and constraint satisfaction, we define a Lyapunov function below with a constant vector λ = ( λ f , λ g , λ h ) ∈ Ω λ ( θ ) , where λ f = 1 , λ g ∈ R M g + , λ h ∈ R M h , and λ g &gt; λ ∗ g ( θ t ) , λ h &gt; λ ∗ h ( θ t ) for all t ∈ [ T ] .
+
+<!-- formula-not-decoded -->
+
+Note that V t ≥ 0 for all t since AF ( θ ) ≥ 0 , λ f ≥ 0 .
+
+For notation simplicity, we let d ∗ t = d ∗ ( θ t ) . From Assumption 2, the smoothness of the objectives, and Lemma 9, based on the update θ t +1 = θ t + α t d t , it holds that
+
+<!-- formula-not-decoded -->
+
+where ( a ) follows Lemma 9; ( b ) follows from that d t is an ϵ -optimal solution to the subprogram; ( c ) follows from Lemma 10 with λ = [ λ f ; 0; 0] ∈ Ω λ ( θ ) therein.
+
+From Lemma 11, for α t ≤ min { c -1 g , c -1 h } , it holds that
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+Combining the above inequalities for V f,t , V g,t , V h,t , we have
+
+<!-- formula-not-decoded -->
+
+where the last inequality holds because λ ∗ g ( θ t ) ⊤ G ( θ t ) = λ ∗ g ( θ t ) ⊤ [ G ( θ t )] + -λ ∗ g ( θ t ) ⊤ [ -G ( θ t )] + . Taking telescoping sum of the above inequality from t = 0 , . . . , T -1 and rearranging, we have
+
+<!-- formula-not-decoded -->
+
+Recall that α t ≤ 1 / ( ℓ f, 1 ∥ A ⊤ ag λ ∥ 1 ) . Plugging this into the above inequality yields
+
+<!-- formula-not-decoded -->
+
+Taking α t = Θ(1) , then
+
+<!-- formula-not-decoded -->
+
+The proof is complete.
+
+Next we show that the subprogram converges with a projected gradient descent (PGD) algorithm on λ with K iterations.
+
+Lemma 12 (Convergence of the subprogram with projected gradient descent) . At the t -th iteration, given θ t , let { λ t,k } k be the sequence generated by the projected gradient descent algorithm to solve the subprogram min λ ∈ Ω λ ( θ t ) φ ( λ ; θ t ) , then
+
+<!-- formula-not-decoded -->
+
+Proof. The result follows from the convergence result of projected gradient descent for convex objective functions. Note that at each iteration t , given θ t , Ω λ ( θ t ) is fixed.
+
+Lemma 13. Suppose Assumption 3 holds. Due to the ℓ φ λ , 1 -smoothness and the convexity of the subprogram, it holds for all λ ∈ Ω λ ( θ ) that
+
+<!-- formula-not-decoded -->
+
+Proof. Since the objectives f m ( θ ) are Lipschitz continuous for all m ∈ [ M ] , the subprogram objective φ ( λ ; θ ) is ℓ φ λ , 1 -smooth w.r.t. λ . By Proposition 1 (b) in [58], it holds that
+
+<!-- formula-not-decoded -->
+
+By the convexity of φ ( λ ; θ ) w.r.t. λ , for all λ ∈ Ω λ ( θ ) ,
+
+<!-- formula-not-decoded -->
+
+Combining the above two inequalities proves the result.
+
+Corollary 14 (Convergence of Algorithm 1 with K -iteration PGD for the subprogram) . Suppose Assumptions 1, 2 hold. Let { θ t } be the sequence produced by Algorithm 1 with the update θ t +1 = θ t + α t d t , where d t is the ϵ -optimal solution to the subprogram (2.1) obtained by K -iteration PGD for the subprogram on λ . Define λ := ( λ f , λ g , λ h ) ∈ Ω λ ( θ ) with λ g ≥ λ ∗ g ( θ ) + 1 , λ h ≥ λ ∗ h ( θ ) + 1 for all θ ∈ R q . If the step size α t ≤ 1 / ( ℓ f, 1 ∥ A ⊤ ag λ ∥ 1 ) and α t = Θ(1) , then
+
+<!-- formula-not-decoded -->
+
+Proof. For t = 0 , . . . , T -1 , we take K = T 2 , applying Lemma 12, we have
+
+<!-- formula-not-decoded -->
+
+From Lemma 13, the above inequality implies
+
+<!-- formula-not-decoded -->
+
+Plugging in the gradient ∇ φ ( λ t ; θ t ) , we have
+
+<!-- formula-not-decoded -->
+
+Let ϵ = 4 ℓ φ λ , 1 c 2 λ γT 2 , from Theorem 1, it holds that
+
+<!-- formula-not-decoded -->
+
+Taking telescoping sum of the above inequality from t = 0 , . . . , T -1 , rearranging, and letting α t ≤ 1 / ( ∥ λ ∥ 1 ℓ f, 1 ∥ A ⊤ ag ∥ ∞ , 1 ) , we have
+
+<!-- formula-not-decoded -->
+
+Letting α t = Θ(1) , γ = Θ(1) yields
+
+<!-- formula-not-decoded -->
+
+The proof is complete.
+
+## F Proof of Theorems 2 and 3: convergence of Algorithm 2
+
+In this section, we prove the convergence of Algorithm 2 with single-loop updates. We focus on the problem with equality constraints only, i.e., M g = 0 . Furthermore, we consider the simplified subprogram without adaptivity to the objectives, thus Ω λ f ( θ ) = ∆ M .
+
+We provide two theoretical results in Theorems 2 and 3, respectively. Specifically, Theorem 2 uses the same merit function as Theorem 1, but provides a slower convergence rate. Theorem 3 uses a different merit function, and provides a faster convergence rate than Theorem 1 under additional assumptions.
+
+## F.1 Auxiliary lemmas
+
+Lemma 15 (Smoothness of φ w.r.t. λ ) . Suppose Assumptions 1 and 3 hold. φ ( λ ; θ ) is ℓ φ λ , 1 -smooth w.r.t. λ , with ℓ φ λ , 1 = M ∥ A ag ∥ 2 ℓ 2 f .
+
+Proof. The Hessian of φ ( λ ; θ ) w.r.t. λ can be computed by
+
+<!-- formula-not-decoded -->
+
+By Assumption 3, the Lipschitz continuity of F , it holds that
+
+<!-- formula-not-decoded -->
+
+The result is proved.
+
+Lemma 16 ( ∥∇ λ f φ ( λ t ; θ t ) ∥ is bounded by ∥ d t ∥ ) . Suppose Assumptions 1 and 3 hold. For { θ t } produced by Algorithm 2, we have
+
+<!-- formula-not-decoded -->
+
+Proof. The gradient of φ ( λ t ; θ t ) w.r.t. λ f can be computed by
+
+<!-- formula-not-decoded -->
+
+By Assumption 3, it holds that
+
+The proof is complete.
+
+Lemma 17. Let λ t = [ λ f,t ; λ h,t ] . Consider the sequence { λ t } T t =1 generated by the update (3.1) . Then for all λ ∈ Ω λ ( θ t ) with λ = ( λ f , λ h ) , it holds that
+
+<!-- formula-not-decoded -->
+
+Proof. By the update of λ f,t , and the non-expansiveness of projection, for all λ f ∈ ∆ M , we have
+
+<!-- formula-not-decoded -->
+
+Rearranging the above inequality proves the first inequality.
+
+By the update of λ h,t , for all constant λ h ∈ R M h , we have
+
+<!-- formula-not-decoded -->
+
+Rearranging the above inequality proves the second inequality.
+
+Corollary 18. Let λ t = [ λ f,t ; λ h,t ] . Consider the sequence { λ t } T t =1 generated by the update (3.1) . Then for all λ ∈ Ω λ with λ = ( λ f , λ h ) , it holds that
+
+<!-- formula-not-decoded -->
+
+Proof of Corollary 18. The result follows from combining the two inequalities in Lemma 17, and applying the convexity property of φ w.r.t. λ .
+
+<!-- formula-not-decoded -->
+
+## F.2 Analysis with the same merit function: proof of Theorem 2
+
+In this section, we provide analysis with the same merit function as Theorem 1. The proof follows similar ideas of the proofs of Theorem 3 (for convergence of the subprogram with the approximate single-loop update) and Theorem 5 (for convergence of the main program) in [7]. We follow the proofs in [7], as they provide, to the best of our knowledge, the fastest convergence rate guarantees for single-loop MOO algorithms under minimal assumptions.
+
+Similar to [7], we first define the following auxiliary functions to assist our analysis. Note that the functions are only used for analysis but not for the algorithm update.
+
+<!-- formula-not-decoded -->
+
+We then present the following Lemmas that are useful for the proof of convergence of Algorithm 2.
+
+Lemma 19. Suppose Assumption 3 holds, and λ ∗ ( θ ) and λ ∗ ρ ( θ ) are bounded for θ ∈ { θ t } T -1 t =0 produced by Algorithm 2, i.e., ∥ λ ∗ ( θ ) ∥ ≤ c λ , ∥ λ ∗ ρ ( θ ) ∥ ≤ c λ . Then on the trajectory of Algorithm 2, with θ ∈ { θ t } T -1 t =0 , we have
+
+<!-- formula-not-decoded -->
+
+Proof of Lemma 19. The proof follows the proof of [7, Lemma 13].
+
+Corollary 20. Suppose Assumption 3 holds, and λ ∗ ( θ ) and λ ∗ ρ ( θ ) are bounded for θ ∈ { θ t } T -1 t =0 produced by Algorithm 2, i.e., ∥ λ ∗ ( θ ) ∥ ≤ c λ , ∥ λ ∗ ρ ( θ ) ∥ ≤ c λ . Then on the trajectory of Algorithm 2, with θ ∈ { θ t } T -1 t =0 , we have
+
+<!-- formula-not-decoded -->
+
+Proof of Corollary 20. By applying Lemma 13, and that ∇ λ h φ ( λ ∗ ( θ ); θ ) = 0 , we have
+
+<!-- formula-not-decoded -->
+
+Applying Lemma 19, we can further derive
+
+<!-- formula-not-decoded -->
+
+Combining (F.11) and (F.12) yields the result.
+
+Lemma 21 (Continuity of λ ∗ ρ ( θ ) ) . For λ ∗ ρ ( θ ) defined in (F.8) , and Ω λ ( θ ) = Ω λ , the following holds
+
+<!-- formula-not-decoded -->
+
+Proof of Lemma 21. The proof follows the proof of [7, Lemma 12].
+
+Lemma 22. Suppose Assumptions 1, 2, 3 hold. Let { θ t } , { λ t } be the sequences produced by Algorithm 2 with step sizes α t = α &gt; 0 , γ t = γ &gt; 0 . Assume ∥ λ ∗ ( θ t ) ∥ , ∥ λ ∗ ρ ( θ t ) ∥ , ∥ λ t ∥ ≤ c λ . Then for any ρ &gt; 0 , it holds that
+
+<!-- formula-not-decoded -->
+
+Proof of Lemma 22. The proof follows the proof techniques of [7, Lemma 15].
+
+First, applying Corollary 18 and γ = γ yields
+
+<!-- formula-not-decoded -->
+
+Taking telescoping sum of the above inequality and rearranging, we have
+
+<!-- formula-not-decoded -->
+
+where J 1 can be further bounded by
+
+<!-- formula-not-decoded -->
+
+where the last inequality follows from Lemma 21 and the update of θ t .
+
+Finally, taking α t = α , plugging the above bound for J 1 back into (F.16), and bounding ∥ d t ∥ by Assumption 3 and that ∥ λ t ∥ ≤ c λ prove the result.
+
+Proof of Theorem 2. We consider the following Lyapunov function with a constant vector λ = [ λ f ; λ h ] ∈ Ω λ , where λ f ∈ ∆ M , λ h ∈ R M h .
+
+<!-- formula-not-decoded -->
+
+Recall that λ t = [ λ f,t ; λ h,t ] , and the algorithm takes the update θ t +1 = θ t + α t d t with d t = ∇ F ( θ t ) A ⊤ ag λ t . From Assumption 2, the smoothness of the objectives, and Lemma 9, the function λ ⊤ f AF ( θ ) is smooth, thus
+
+<!-- formula-not-decoded -->
+
+By Lemma 17, taking γ t &gt; 0 and rearranging, we have
+
+<!-- formula-not-decoded -->
+
+Combining (F.18) and (F.19), and choosing α t γ t = α 0 γ 0 for all t ∈ [ T ] , we have
+
+<!-- formula-not-decoded -->
+
+By the smoothness of λ ⊤ h H ( θ ) , and ∇ λ h φ ( λ t ; θ t ) = -∇ H ( θ t ) ⊤ d t -c h H ( θ t ) , it holds that V h, 1 ,t +1 -V h, 1 ,t ≤ α t λ ⊤ h ∇ H ( θ t ) ⊤ d t + ℓ f, 1 2 α 2 t ∥ B ⊤ h λ h ∥ 1 ∥ d t ∥ 2
+
+we have
+
+<!-- formula-not-decoded -->
+
+Taking telescoping sum of the above inequality over t = 0 , . . . , T -1 , and applying that ∥∇ λ h φ ( λ t ; θ t ) ∥ 1 ≤ √ M h ∥∇ λ h φ ( λ t ; θ t ) ∥ , we have
+
+<!-- formula-not-decoded -->
+
+where ∑ T -1 t =0 ∥∇ λ h φ ( λ t ; θ t ) ∥ can be further bounded by applying Lemma 22 and Corollary 20 along with Jensen's inequality as follows
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+Bounding the last term in the above inequality by Lemma 17, and taking γ t &gt; 0 , we have
+
+<!-- formula-not-decoded -->
+
+Adding up (F.20) and (F.22) yields
+
+<!-- formula-not-decoded -->
+
+where the last inequality uses the fact that ⟨ λ t , ∇ λ φ ( λ t ; θ t ) ⟩ = ∥ d t ∥ 2 -c h λ ⊤ h,t H ( θ t ) . Using the fact that ∇ λ h φ ( λ t ; θ t ) = -∇ H ( θ t ) ⊤ d t -c h H ( θ t ) , and with similar arguments as (E.20) in Lemma 11, we can further derive that
+
+<!-- formula-not-decoded -->
+
+Therefore,
+
+<!-- formula-not-decoded -->
+
+Combining (F.23) and (F.25), and by choosing step sizes α t , γ t , parameter c V h such that
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+where ∥∇ λ φ ( λ t ; θ t ) ∥ 2 = ∥∇ λ h φ ( λ t ; θ t ) ∥ 2 + ∥∇ λ f φ ( λ t ; θ t ) ∥ 2 ≲ ∥∇ λ h φ ( λ t ; θ t ) ∥ 2 + ∥ d t ∥ 2 . Plugging the above inequality back into (F.28), choosing ρ = Θ ( ( α γ ) 1 2 ) , and rearranging yield
+
+<!-- formula-not-decoded -->
+
+Choosing α = Θ( T -5 6 ) , γ = Θ( T -1 6 ) proves the result.
+
+## F.3 Sharper analysis with a different merit function: proof of Theorem 3
+
+In this section, we provide an analysis of convergence of Algorithm 2 with a different merit function and faster convergence rate. We first present the auxiliary lemmas and then prove Theorem 3.
+
+Lemma 23. Suppose Assumptions 1 and 3 hold. For { θ t } , { λ t } produced by Algorithm 2 with M g = 0 and Ω λ f ( θ t ) = ∆ M , and for all t = 0 , . . . , T , ∥ d t ∥ can be bounded by
+
+<!-- formula-not-decoded -->
+
+and ∥∇ λ φ ( λ t ; θ t ) ∥ can be bounded by
+
+<!-- formula-not-decoded -->
+
+Proof. Since d t = ∇ F ( θ t ) A ⊤ ag λ t , we have
+
+<!-- formula-not-decoded -->
+
+which proves (F.31).
+
+Furthermore, invoking that ∇ λ φ ( λ t ; θ t ) = A ag ∇ F ( θ t ) ⊤ d t -c h H ( θ t ) , we have
+
+<!-- formula-not-decoded -->
+
+which proves (F.32).
+
+Lemma 24. Suppose Assumptions 1, 2, and 3 hold, and M g = 0 . For { θ t } , { λ t } produced by Algorithm 2, further assume { λ h,t } are bounded on the trajectory, i.e., ∥ λ h,t ∥ 1 ≤ c λ h . For all t = 0 , . . . , T , choose α t such that α t ≤ c α,h ℓ f, 1 ∥ A ⊤ ag ∥ 1 (1+ c λ h ) , and α t ∥ H ( θ t ) ∥ ≤ c α,h for any 0 &lt; c α,h &lt; ∞ , then it holds that
+
+<!-- formula-not-decoded -->
+
+Proof. By choosing α t ≤ c α,h ℓ f, 1 ∥ A ⊤ ag ∥ 1 (1+ ∥ λ h,t ∥ 1 ) , and invoking (F.31) in Lemma 23, we have
+
+<!-- formula-not-decoded -->
+
+By the mean-value theorem, for all t = 0 , . . . , T , there exists ˜ θ t such that
+
+<!-- formula-not-decoded -->
+
+The term ∥∇ 2 ( H ( ˜ θ t ) ⊤ H ( ˜ θ t )) ∥ can be upper bounded by
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+Since H ( ˜ θ t ) is ℓ H -Lipschitz continuous with ℓ H = ∥ B h ∥ √ Mℓ f , and ˜ θ t lies on the line segment of θ t and θ t +1 with ∥ θ t +1 -θ t ∥ = α t ∥ d t ∥ , therefore,
+
+<!-- formula-not-decoded -->
+
+Plugging the above inequality into (F.37) yields
+
+<!-- formula-not-decoded -->
+
+The proof is complete.
+
+Lemma 25 (Smoothness of φ w.r.t. θ ) . Under Assumptions 2, 3, 4-2, φ ( λ ; θ ) is ℓ φ θ , 1 -smooth w.r.t. θ for all λ, θ on the trajectory of Algorithm 2. with ℓ φ θ , 1 = M ( ℓ 2 f, 1 + ℓ f, 2 ℓ f )( ∥ A ∥ + ∥ B h ∥ c λ h ) 2 + c h c λ h ∥ B h ∥ ℓ f, 1 .
+
+Proof of Lemma 25. By the definition of φ , its gradient w.r.t θ can be computed by
+
+<!-- formula-not-decoded -->
+
+For brevity, let v = A ⊤ ag λ . Then for any θ, θ ′ ∈ { θ t } on the trajectory of Algorithm 2, ∥∇ θ φ ( λ ; θ ) -∇ θ φ ( λ ; θ ′ ) ∥ can be further bounded by
+
+<!-- formula-not-decoded -->
+
+where the last inequality follows from Assumptions 2 and 3. Using the fact that λ f ∈ ∆ M , and ∥ λ h,t ∥ ≤ c λ h on the trajectory of Algorithm 2, for all λ ∈ { λ t } on the trajectory of Algorithm 2, ∥ v ∥ = ∥ A ⊤ ag λ ∥ can be further bounded by
+
+<!-- formula-not-decoded -->
+
+Plugging the above inequality back into (F.42) completes the proof.
+
+Lemma 26 ([53, Lemma 4]) . Let Ω ⊆ R M be a closed convex set, and let Π Ω denote Euclidean projection to Ω . Given any λ ∈ Ω , d ∈ R M and γ &gt; 0 , it holds that
+
+<!-- formula-not-decoded -->
+
+Lemma 27 (Proximal PL inequality implies proximal error bound and quadratic growth) . Suppose Assumptions 1, 3, and 4-1 hold. Then for λ, θ on the trajectory of Algorithm 2, φ ( λ ; θ ) + g ( λ ) , with g ( λ ) being an indicator function defined on the set Ω λ , satisfies the 1 ¯ µ φ -proximal error bound (EB) and the 1 µ ′ φ -quadratic growth (QG) w.r.t. λ for some ¯ µ φ , µ ′ φ &gt; 0 depending on µ φ , as defined below
+
+<!-- formula-not-decoded -->
+
+where S φ ( θ ) := { λ ∈ Ω λ | φ ( λ ; θ ) = φ ( λ ∗ ( θ ); θ ) } .
+
+Proof of Lemma 27. By Lemma 15, φ ( λ ; θ ) is smooth w.r.t. λ . Furthermore, by [28, Appendix G], and combined with Assumption 4-1, the proximal PL inequality, it implies that φ ( λ ; θ ) + g ( λ ) satisfies the proximal error bound. From [10, Corollary 3.6], the proximal error bound further implies the quadratic growth, which proves the result.
+
+Lemma 28 (Lipschitz continuity of λ ∗ ( θ ) , [53, Lemma 5]) . Suppose Assumption 3 holds. If given λ ∈ Ω λ , and θ ′ ∈ R q , φ ( λ ; θ ′ ) satisfies the 1 ¯ µ φ -proximal error bound w.r.t. λ . Then given θ ∈ R q , for any λ ∗ ( θ ) ∈ arg min λ ∈ Ω λ φ ( λ ; θ ) , there exists λ ∗ ( θ ′ ) ∈ arg min λ ∈ Ω λ φ ( λ ; θ ′ ) such that
+
+<!-- formula-not-decoded -->
+
+with ℓ λ ∗ = ℓ φ λ , 1 ¯ µ φ , and ℓ φ λ , 1 defined in Lemma 15.
+
+Lemma 29 (Danskin-type Lemma for proximal PL functions [53, Proposition 6]) . Suppose Assumptions 1, 2, 3, 4 hold, then φ ( λ ∗ ( θ ); θ ) is differentiable with the gradient computed by
+
+<!-- formula-not-decoded -->
+
+Moreover, φ ( λ ∗ ( θ ); θ ) is ℓ φ ∗ , 1 -smooth with ℓ φ ∗ , 1 := ℓ φ, 1 (1 + ℓ λ ∗ ) .
+
+Below, Lemma 30 establishes the approximate descent or contraction of the subprogram after taking one-step update on λ t . This is crucial for a sharper analysis of convergence of Algorithm 2.
+
+Lemma30 (Error of subprogram) . Suppose Assumptions 1, 2, 3, 4 hold, M g = 0 , and Ω λ f ( θ ) = ∆ M . Let { θ t } , { λ t } be the sequences produced by Algorithm 2 with step size γ t ≤ ℓ -1 φ λ , 1 . Then for any c φ,d &gt; 0 , the following hold
+
+<!-- formula-not-decoded -->
+
+Proof of Lemma 30. We first prove (F.48a). Recall the definition of D φ,γ ( λ ; θ ) in Definition 3. By the ℓ φ λ , 1 -smoothness of φ w.r.t. λ and the update on λ t , and that γ t ≤ ℓ -1 φ λ , 1 , we have
+
+<!-- formula-not-decoded -->
+
+≤ φ ( λ t ; θ t ) -γ t 2 D φ,γ t ( λ t ; θ t ) by Lemma 26 and Definition 3
+
+<!-- formula-not-decoded -->
+
+where the last inequality follows from the proximal PL inequality. Subtracting both sides of the above inequality by φ ( λ ∗ ( θ t ); θ t ) proves (F.48a).
+
+Next we prove (F.48b). We decompose the error on the left hand side of (F.48b) by
+
+<!-- formula-not-decoded -->
+
+where we use the ( ℓ φ θ , 1 + ℓ φ ∗ , 1 ) -smoothness of φ ( λ ; θ ) -φ ( λ ∗ ( θ ); θ ) w.r.t. θ to further bound J 1 by
+
+<!-- formula-not-decoded -->
+
+Then we can further derive that
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+where ( a ) is from Cauchy-Swartz inequality, and ( b ) holds because
+
+<!-- formula-not-decoded -->
+
+where the last inequality follows from Lemma 27, the 1 µ ′ φ -quadratic growth of φ ( · ; θ ) .
+
+Finally, plugging (F.52) back into (F.50) completes the proof of (F.48b).
+
+Corollary 31. Suppose Assumptions 1, 2, 3, 4 hold, and M g = 0 . Let { θ t } , { λ t } be the sequences produced by Algorithm 2 with step size γ t ≤ ℓ -1 φ λ , 1 . Then for any c φ,d &gt; 0 , it holds that
+
+<!-- formula-not-decoded -->
+
+Proof of Corollary 31. The proof directly follows by plugging (F.48a) into (F.48b).
+
+Lemma 32. If by choosing α t = min { c α,h ∥ H ( θ t ) ∥ , c α } with 0 &lt; c α,h , c α &lt; ∞ , and from the algorithm update and properties we can derive α t ∥ H ( θ t ) ∥ 2 = O (1) is bounded, then ∥ H ( θ t ) ∥ is bounded.
+
+Proof of Lemma 32. We prove by contradiction. Suppose ∥ H ( θ t ) ∥ = ω (1) is not bounded, then
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+which implies ∥ H ( θ t ) ∥ = O (1) and contradicts with ∥ H ( θ t ) ∥ = ω (1) . Therefore, we have proved ∥ H ( θ t ) ∥ is bounded.
+
+Remark 33. Lemma 32 uses the algorithm properties to prove that ∥ H ( θ t ) ∥ is bounded, instead of directly assuming ∥ H ( θ t ) ∥ is bounded. This will be used in the proof of Theorem 3 to show that ∥ H ( θ t ) ∥ is bounded on the trajectory of Algorithm 2.
+
+Next we proceed to prove Theorem 3, the sharper convergence of Algorithm 2.
+
+Proof of Theorem 3. We consider the following Lyapunov function with a constant vector λ f ∈ ∆ M .
+
+<!-- formula-not-decoded -->
+
+Following the same arguments from (F.18)-(F.20), and by choosing α t γ t = α 0 γ 0 = 1 c γ,α for all t ∈ [ T ] , we have
+
+<!-- formula-not-decoded -->
+
+Furthermore,
+
+Similarly, we can derive that
+
+<!-- formula-not-decoded -->
+
+Combining (F.58) and (F.59) yields
+
+<!-- formula-not-decoded -->
+
+Next we proceed to bound V h, 3 ,t +1 -V h, 3 ,t . By Lemma 24, it holds that
+
+<!-- formula-not-decoded -->
+
+where ℓ H 2 , 1 ,t = 2 Mℓ 2 f +2( α -1 t c α,h + ℓ H c d ) √ Mℓ f, 1 . Because ∇ λ h φ ( λ t ; θ t ) = -∇ H ( θ t ) ⊤ d t -c h H ( θ t ) , the term H ( θ t ) ⊤ ∇ H ( θ t ) ⊤ d t can be further written as
+
+<!-- formula-not-decoded -->
+
+Plugging (F.62) into (F.61) yields
+
+<!-- formula-not-decoded -->
+
+Letting ℓ FH, 1 = ℓ f, 1 ( ∥ A ⊤ ∥ 1 + ∥ B ⊤ h ∥ 1 c λ h ) , and adding up (F.60) and (F.63), we have
+
+<!-- formula-not-decoded -->
+
+where ∥∇ λ f φ ( λ t ; θ t ) ∥ 2 ≤ ∥∇ λ φ ( λ t ; θ t ) ∥ 2 is further bounded by Lemma 23, (F.32) as
+
+<!-- formula-not-decoded -->
+
+Plugging (F.65) back into (F.64) yields
+
+<!-- formula-not-decoded -->
+
+where by choosing the step sizes α t ≤ 1 2 ℓ FH, 1 + ℓ H 2 , 1 ,t , γ t ≤ min { 1 4 ∥ A ag ∥ 2 Mℓ 2 f , 1 2 c h } , it holds that
+
+<!-- formula-not-decoded -->
+
+Plugging (F.67) into (F.66), and rearranging, we have
+
+<!-- formula-not-decoded -->
+
+where the last inequality follows from Cauchy-Schwarz inequality and that γ t = c γ,α α t .
+
+By applying Corollary 31 with γ t ≤ ℓ -1 φ λ , 1 , α t ≤ 1 ( ℓ φ θ , 1 + ℓ φ ∗ , 1 ) c φ,d and c γ,α ≥ 2 c φ,d ℓ 2 φ θ , 1 µ ′ φ µ φ , we further have that
+
+<!-- formula-not-decoded -->
+
+Then note that from (F.11) we have ∥∇ λ h φ ( λ t ; θ t ) ∥ 2 ≤ 2 ℓ φ λ , 1 ( φ ( λ t ; θ t ) -φ ( λ ∗ ( θ t ); θ t ) ) . Adding up (F.69) and (F.68) with properly chosen hyperparameters c h ≥ (1 + c γ,α ) 2 , c γ,α ≥ 4 ℓ φ λ , 1 µ φ , and c φ,d = 4 yields
+
+<!-- formula-not-decoded -->
+
+Taking telescoping sum of the above inequality over t = 0 , . . . , T -1 yields
+
+<!-- formula-not-decoded -->
+
+where the second last inequality follows from V f,t ≥ 0 , choosing λ f = λ f, 0 , and V φ,t ≥ 0 , the last inequality follows from choosing θ 0 , λ 0 such that λ ⊤ f AF ( θ 0 ) , H ( θ 0 ) , φ ( λ 0 ; θ 0 ) -φ ( λ ∗ ( θ 0 ); θ 0 ) are bounded, thus 2 V f, 0 + ∥ H ( θ 0 ) ∥ 2 +2 V φ, 0 ≤ c 0 &lt; ∞ , λ h,t are bounded on the trajectory, and ∥ H ( θ 0 ) ∥ 1 , ∥ H ( θ T ) ∥ 1 ≤ c H , thus 4 ( λ ⊤ h, 0 H ( θ 0 ) -λ ⊤ h,T H ( θ T ) ) ≤ 8 c λ h c H .
+
+We then summarize the best possible choices for α t , γ t . Recall that we require α t ≤ 1 2 ℓ FH, 1 + ℓ H 2 , 1 ,t . Rearranging this inequality with ℓ H 2 , 1 ,t = 2 M ∥ B h ∥ 2 ℓ 2 f + 2( α -1 t + ℓ H ) c α,h √ Mℓ f, 1 ∥ B h ∥ , and choosing c α,h = 1 4 √ Mℓ f, 1 ∥ B h ∥ yield
+
+<!-- formula-not-decoded -->
+
+Then we can choose the following to ensure the above inequality holds
+
+<!-- formula-not-decoded -->
+
+To summarize, we can choose the following hyperparameters and step sizes
+
+<!-- formula-not-decoded -->
+
+where ℓ FH, 1 = ℓ f, 1 ( ∥ A ⊤ ∥ 1 + ∥ B ⊤ h ∥ 1 c λ h ) , and ℓ H = ∥ B h ∥ √ Mℓ f . Then it holds that
+
+<!-- formula-not-decoded -->
+
+Therefore, α t c h ∥ H ( θ t ) ∥ 2 are bounded for all t = 0 , . . . , T . Combining with Lemma 32, we have ∥ H ( θ t ) ∥ are bounded for all t = 0 , . . . , T , thus we can choose α t = Ω(1) , i.e., α t is lower bounded by a constant.
+
+Collecting the results above, we have proved that we can choose α t = Θ(1) , γ t = Θ(1) such that
+
+<!-- formula-not-decoded -->
+
+The proof is complete.
+
+## G Stochastic Algorithms
+
+In this section, we discuss the single-loop stochastic algorithm and its convergence guarantees. Note that, the extension of the analysis of the double-loop algorithm, i.e., Algorithm 1 and the extension of the single-loop algorithm analysis in Theorem 2 to their stochastic variants with double sampling as used in [7], are rather straightforward, thus we ommit the discussion in this paper, and only focus on the single-loop stochastic algorithm with equality constraints only, i.e., M g = 0 , and with a sharper analysis as an extension of Theorem 3.
+
+Let ξ and ξ ′ be i.i.d. random variables. The stochastic constrained vector optimization problem is defined as
+
+<!-- formula-not-decoded -->
+
+## G.1 Algorithm summary
+
+The stochastic algorithm is summarized in Algorithm 3. Note that, instead of computing ∇ F ξ t, 1 ( θ t ) , ∇ F ξ t, 2 ( θ t ) , which requires 2 M gradient computation at each iteration, we compute ∇ F ξ t, 1 ( θ t ) , ∇ ( F ξ t, 2 ( θ t ) A ⊤ ag λ t ) , which requires M + 1 gradient computation per iteration. This saves nearly half of the per-iteration complexity compared to the most relevant existing stochastic algorithm for multi-objective optimization [7]. Furthermore, with the gradient-based single-loop update for λ t , the approximation approach proposed in [34, Section 3.2] can be further applied to largely reduce the per-iteration complexity, which we leave for future work.
+
+## Algorithm 3 Stochastic FERERO-SA
+
+- 1: Initialize t = 0 , θ 0 , λ 0 , step sizes α t , γ t ; 2: for t = 0 , . . . , T -1 do 3: Compute the stochastic gradients ∇ F ξ t, 2 ( θ t ) , ∇ F ξ t, 1 ( θ t ) A ⊤ ag λ t ; 4: Compute the stochastic estimate of the constraint H ξ t, 1 ( θ t ) ; 5: Compute an update direction d t = ∇ F ξ t, 1 ( θ t ) A ⊤ ag λ t ; 6: Choose the step size α t by a predefined schedule; 7: Update θ t by θ t +1 = θ t + α t d t ; 8: Update λ t by (3.4); 9: end for
+
+## G.2 Proof of Theorem 4: convergence of Algorithm 3
+
+We first introduce the supporting lemmas, and then present the main proofs. Denote F t as the σ -algebra generated by ∇ F ξ 0 ( θ 0 ) , ∇ F ξ 1 ( θ 1 ) , . . . , ∇ F ξ t ( θ t ) , where ξ t = { ξ t, 1 , ξ t, 2 } . For brevity, we let E t [ · ] := E [ · | F t -1 ] . Also recall that ˜ ∇ is the unbiased stochastic estimate of the gradient.
+
+We make the following additional assumptions for proof of convergence.
+
+Assumption 5. For { θ , λ } on the trajectory of Algorithm 3, it holds that
+
+1. The variance of ∇ F ξ t ( θ t ) is bounded by σ
+
+t t T -1 t =0 2 .
+
+2. The variance of ˜ ∇ λ φ ( λ t ; θ t ) is bounded by γ t σ 2 .
+3. The function ∥ H ( θ t ) ∥ is bounded by c H .
+
+Note that the bounded variance assumption is common in optimization literature. However, for sharp analysis here, we additionally require ˜ ∇ λ φ ( λ t ; θ t ) has reduced variance in the order of O ( γ t ) , which can be achieved using a large batch size. Note that, even without assuming reduced variance, i.e., Assumption 5-2, the stochastic algorithm still converges, which can be proved by extending Theorem 2 to the stochastic case using the same techniques in [7] for MoDo, a double-sampling-based single-loop stochastic variant of MGDA. However, the convergence rate will be slower than O ( T -1 2 ) . Here we use this additional assumption to achieve a faster convergence rate.
+
+The following Lemma 34 extends Lemma 17 to the stochastic case.
+
+Lemma34. Let λ t = [ λ f,t ; λ h,t ] . Consider the stochastic sequence { λ t } T t =0 produced by Algorithm 3. Then for all λ = [ λ f ; λ h ] ∈ Ω λ , it holds that
+
+<!-- formula-not-decoded -->
+
+Proof. By the update of λ , it holds that
+
+<!-- formula-not-decoded -->
+
+Taking expectation over the stochastic samples and rearranging the above inequality, we have
+
+<!-- formula-not-decoded -->
+
+Following similar arguments, it holds that
+
+<!-- formula-not-decoded -->
+
+The proof is complete.
+
+Lemma 35 (Restatement of [50, Lemma 2]) . Let ¯ φ ( x ) = φ ( x ) + h ( x ) , where φ : R q → R is L -smooth, and h : R q → R is nonsmooth but convex and relatively simple. Define y = prox γh ( x -γd ′ ) for some d ′ ∈ R q . Then for y , the following inequality holds for all z ∈ R q :
+
+<!-- formula-not-decoded -->
+
+The following Lemma 36 extends Lemma 30 to the stochastic case.
+
+Lemma 36 (Error of subprogram in the stochastic setting) . Suppose Assumptions 1, 2, 3, 4, 5 hold, and M g = 0 . Let { θ t } , { λ t } be the sequences produced by Algorithm 3 with step size γ t ≤ ℓ -1 φ λ , 1 . Then for any c φ,d &gt; 0 , the following hold
+
+<!-- formula-not-decoded -->
+
+Proof of Lemma 36. The proof follows most of that of Lemma 30. We highlight the difference.
+
+First we define λ ′ t +1 = Π Ω λ ( λ t -∇ λ φ ( λ t ; θ t )) as an auxiliary variable. By the ℓ φ λ , 1 -smoothness of φ ( · ; θ ) , we have
+
+<!-- formula-not-decoded -->
+
+Applying Lemma 35 with y = λ t +1 , z = λ ′ t +1 , x = λ t , and that λ t , λ t +1 , λ ′ t +1 ∈ Ω λ yields
+
+<!-- formula-not-decoded -->
+
+Furthermore, following similar arguments as (F.49), by Assumption 4-1, and taking total expectation, we have
+
+<!-- formula-not-decoded -->
+
+Adding up 2 3 × (G.8), 1 × (G.9), and 1 3 × (G.10) yields
+
+<!-- formula-not-decoded -->
+
+Choosing γ t ≥ 1 ℓ φ λ , 1 ≥ 1 5 ℓ φ λ , 1 and applying Cauchy-Schwarz and Young's inequality, we have
+
+<!-- formula-not-decoded -->
+
+The first inequality is proved. We then prove the second inequality. Note that (F.50) still holds here. Following similar arguments in (F.51), E [ J 1 ] in (F.50) can be further bounded by
+
+<!-- formula-not-decoded -->
+
+Then following similar arguments in (F.52) and (F.53), we have
+
+<!-- formula-not-decoded -->
+
+Plugging (G.14) back into (F.50) with total expectation completes the proof of the second inequality.
+
+Next we proceed to state and prove Theorem 4, which generalizes Theorem 3 to its stochastic variants, with a matching convergence rate to the unconstrained stochastic MOO algorithms and stochastic gradient descent. This allows us to apply the algorithm to large-scale machine learning problems, which we detail in Section 5. Its proof also extends that of Theorem 3. We ommit the similar derivations and only highlight the difference.
+
+Theorem 4 (Convergence of the single-loop stochastic FERERO algorithm) . Suppose Assumptions 1, 2, 3, 4, 5 hold, and M g = 0 . Let { θ t } , { λ t } be the sequences produced by Algorithm 3 with A = I and Ω λ f ( θ ) = ∆ M (c.f. Remark 4). With properly chosen step sizes α t = α = Θ( T -1 2 ) , γ t = γ = Θ( T -1 2 ) , it holds that
+
+<!-- formula-not-decoded -->
+
+Proof of Theorem 4. Reuse the Lyapunov functions defined in (F.57). Let λ t = [ λ f,t ; λ h,t ] . The algorithm takes the update θ t +1 = θ t + α t d t with d t = ∇ F ξ t, 1 ( θ t ) A ⊤ ag λ t . From Lemma 9, the function λ ⊤ f AF ( θ ) is ℓ f, 1 ∥ A ⊤ ∥ 1 -smooth. Then following similar arguments from (F.18)-(F.20),
+
+choosing α t γ t = α 0 γ 0 = 1 c γ,α for all t ∈ [ T ] , and taking total expectation, we have the stochastic version of (F.58) below
+
+<!-- formula-not-decoded -->
+
+The stochastic version of (F.59) is
+
+<!-- formula-not-decoded -->
+
+By Lemma 24, and that ∇ λ h φ ( λ t ; θ t ) = -∇ H ( θ t ) ⊤ ∇ F ( θ t ) A ⊤ ag λ t -c h H ( θ t ) , the stochastic version of (F.63) is
+
+<!-- formula-not-decoded -->
+
+where ℓ H 2 , 1 ,t = ℓ H 2 , 1 = 2 M ∥ B h ∥ 2 ℓ 2 f +2( c H + ℓ H c α,h ) Mℓ f, 1 ∥ B h ∥ by Assumption 5-3, and ℓ H = ∥ B h ∥ √ Mℓ f . Let ℓ FH, 1 = ℓ f, 1 ( ∥ A ⊤ ∥ 1 + ∥ B ⊤ h ∥ 1 c λ h ) . Adding up (G.16), (G.17), and (G.18) yields that
+
+<!-- formula-not-decoded -->
+
+Further rearranging the above inequality, applying (F.65), invoking that γ t = c γ,α α t , and choosing { 1 1 1 }
+
+<!-- formula-not-decoded -->
+
+By applying Lemma 36, and choosing α t ≤ min { 1 ℓ φ λ , 1 c γ,α , 1 ( ℓ φ θ , 1 + ℓ φ ∗ , 1 ) c φ,d , µ φ c φ,d ℓ 2 φ θ , 1 } and c γ,α ≥ 2 c φ,d ℓ 2 φ θ , 1 µ ′ φ µ φ , the stochastic version of (F.69) is
+
+<!-- formula-not-decoded -->
+
+Adding up (G.20) and (G.21) with properly chosen hyperparameters c h ≥ (1+ c γ,α ) 2 , c γ,α ≥ 4 ℓ φ λ , 1 µ φ , and c φ,d = 4 , we have
+
+<!-- formula-not-decoded -->
+
+With the same hyperparameters and step sizes summarized in (F.73), one can choose α = Θ( T -1 2 ) , γ = Θ( T -1 2 ) to obtain
+
+<!-- formula-not-decoded -->
+
+The proof is complete.
+
+## H Implementation Details and Additional Experiment Results
+
+In this section, we report the additional implementation details omitted from the main text in Appendix H.1 and the additional experimental results in Appendix H.2.
+
+## H.1 Implementation details
+
+Computation. All experiments were conducted on a server with an Intel i9-7920X CPU, two NVIDIA A5000 GPUs and two NVIDIA A4500 GPUs.
+
+For all the experiments reported in the main text except for the multi-lingual speech recognition experiment, we exactly follow the settings from [41]. The implementations of the baselines including LS, PMTL, and EPO are from the official code of the EPO paper in https://github.com/dbmptr/ EPOSearch with their default hyperparameters. The results of XWC-MGDA are directly referenced from the paper due to lack of official implementation.
+
+Synthetic data. For the results in both Figure 3 and Figure 4, the model parameter θ has dimension q = 20 , the number of objectives is M = 2 . The angles between the preference vectors and the horizontal axis are generated between [ 1 20 π, 9 20 π ] with equal angular distance. This experiment does not involve stochastic optimization. For our method, we solve the subprogram using PGD with a step size 0 . 1 up to an error of 10 -5 or with a maximum of 250 iterations. In the experiments, we set the parameter c h = 1 for the subprogram if not otherwise specified.
+
+In Figure 3, for all preferences and all methods, the initial model parameter θ 0 is randomly generated from a Gaussian distribution N (0 , 1) for each dimension. In Table 6, we provide a summary of the hyperparameters for the baselines and our methods for the experiments in Figure 3.
+
+Table 6: Summary of hyper-parameters for the synthetic data experiments in Figure 3.
+
+| Hyperparameters   |    LS |   MGDA |   PMTL |   EPO |   Ours Figure 3e |   Ours Figure 3f |
+|----------|-------|--------|--------|-------|----------|----------|
+| step size α t     |   0.1 |    0.2 |    0.2 |   0.1 |          0.05 |          0.05 |
+| max iterations    | 150   |  150   |  150   | 100   |          100    |          100    |
+
+In Figures 4a-4c, the initial model parameters are randomly generated from a uniform distribution between [ -0 . 3 , 0 . 3] for each dimension. In Figures 4d-4f, the initial model parameters are randomly generated from a uniform distribution between [ -0 . 5 , -0 . 15] or [0 . 15 , 0 . 5] for each dimension. Table 7 summarizes the hyperparameters for the experiments in Figure 4.
+
+Table 7: Summary of hyper-parameters for the synthetic data experiments in Figure 4.
+
+| Hyperparameters   | Figures 4a-4c   | Figures 4a-4c   | Figures 4a-4c   | Figures 4d-4f   | Figures 4d-4f   | Figures 4d-4f   |
+|----------|----------|----------|----------|----------|----------|----------|
+|          | PMTL          | EPO          | Ours          | PMTL          | EPO          | Ours          |
+| step size α t     | 0.25          | 0.10          | 0.60          | 0.50          | 0.20          | 0.60          |
+| max iterations    | 100          | 60          | 10          | 200          | 120          | 200          |
+| c h          | -          | -          | 1          | -          | -          | 0.01          |
+
+Multi-patch image classification. For a fair comparison, we follow the same data splitting and processing procedures as [41] using their official code. In each of the three datasets, there are 120k samples for training and 20k samples for testing. There are two tasks on each dataset: 1) classifying the top-left image, and 2) classifying the bottom-right image.
+
+For all methods, we use the SGD optimizer with batch size 256. Note that, for our stochastic method, we use batch size 128 for each batch in the double sampling. Thus the total number of samples taken at each iteration is also 256. The hyperparameters are summarized in Table 8. The results of XWC-MGDA are directly referenced from the paper.
+
+We use the Pymoo 0.6.1 library to compute the hypervolume. The Nadir points, i.e., the worst performance on single task baselines, used for the hypervolume computation are given in Table 9. For a fair comparison, the Nadir points we use are the same with [44] inferred from Figure 4 in the paper.
+
+Table 8: Summary of hyper-parameter choices for multi-patch image classification experiments.
+
+| Hyperparameters   | Multi-MNIST   | Multi-MNIST   | Multi-MNIST   | Multi-MNIST   | Multi-Fashion   | Multi-Fashion   | Multi-Fashion   | Multi-Fashion+MNIST   | Multi-Fashion+MNIST   | Multi-Fashion+MNIST   | Multi-Fashion+MNIST   | Multi-Fashion+MNIST   |
+|----------|----------|----------|----------|----------|----------|----------|----------|----------|----------|----------|----------|----------|
+| Hyperparameters   | LS          | PMTL          | EPO          | Ours          | LS          | PMTL          | EPO          | Ours          | LS          | PMTL          | EPO          | Ours          |
+| step size α t     | 1E-3          | 1E-3          | 1E-3          | 1E-3          | 1E-3          | 1E-3          | 1E-3          | 1E-3          | 1E-3          | 1E-3          | 1E-3          | 1E-3          |
+| step size γ t     | -          | -          | -          | 1E-4          | -          | -          | -          | 1E-4          | -          | -          | -          | 1E-4          |
+| epochs          | 100          | 100          | 100          | 100          | 100          | 100          | 100          | 100          | 100          | 100          | 100          | 100          |
+| c h          | -          | -          | -          | 0.5          | -          | -          | -          | 0.5          | -          | -          | -          | 0.5          |
+
+Table 9: Nadir points for the hypervolume computation
+
+| Dataset and metrics    | Nadir points, metrics on objective [ 1 ,...,M ]   |
+|----------|----------|
+| Multi-MNIST loss       | [0.500, 0.450]          |
+| Multi-Fashion loss     | [0.840, 0.800]          |
+| Multi-F+M loss         | [0.625, 0.575]          |
+| Multi-MNIST accuracy   | [0.830, 0.848]          |
+| Multi-Fashion accuracy | [0.840, 0.800]          |
+| Multi-F+M accuracy     | [0.790, 0.785]          |
+
+Multi-lingual speech recognition. Weuse two datasets, Librispeech and AISHELL v1. Librispeech is an English speech dataset that consists of 960 hours of labeled audio data. For our experiments, we use the "train-clean-100" subset of the Librispeech dataset for supervised training, which contains 100 hours of clean training data. Additionally, we use the full 960 hours of data for self-supervised training. AISHELL v1 is a 178-hour Mandarin speech corpus designed for various speech and speaker processing tasks. We use the full AISHELL v1 dataset for both self-supervised and supervised training. We combine these two datasets for our multi-lingual speech recognition experiments.
+
+We use the conformer [26] model with 8 conformer blocks as the encoder. Each block contains 512 hidden units and 8 attention heads. Each attention head has dimension 64. The convolutional kernel size is 31. Two classification heads are used. They contain two linear layers, one with 1000 output size for English, and another with 5000 output size for Chinese.
+
+The loss functions we use include the Contrastive Predictive Coding (CPC) loss, and the Connectionist Temporal Classification (CTC) loss. The CPC loss [46] is a self-supervised loss to learn robust representations from unlabeled speech data. The CPC loss is designed to maximize the probability of a future sample given a contextual representation generated from the current speech sequence. The CTC loss is defined as the negative log-likelihood of
+
+Figure 7: Scale invariance verification.
+
+<!-- image -->
+
+the model parameter given the input sequence and the label sequence.
+
+For all methods including the baselines, we use the step sizes α t, 1 = 5 × 10 -4 for training backbone conformer parameters and α t, 2 = 5 × 10 -5 for training classification head parameters. The step size γ t = 0 . 1 and the parameter c h = 0 . 5 .
+
+## H.2 Additional experiment results
+
+Synthetic data. We conduct several additional experiments on the synthetic objectives to further verify our theory. First, we conduct all the experiments on the synthetic objectives reported in the main text, using the single-loop approximate algorithm described in Algorithm 2. The results are plotted in Figure 8. The hyperparameters are the same unless otherwise specified.
+
+From Figure 8a, we can see that Algorithm 2 with a one-step approximate update of λ t also leads to convergence and preference alignment. However, different from the results obtained by exactly solving for λ ∗ ( θ t ) at each iteration, the models on the optimization trajectories do not align exactly with the preference. Similar observations can be found in Figure 8b. In Figure 8c, which is a difficult case due to the initialization, A = I M does not work since it does not incorporate more general relative preference to allow controlled ascent update. This is addressed in Figure 8d, where a general A (the same as in prior experiments) is used. Compared with exactly solving for λ ∗ ( θ t ) at each
+
+Figure 8: Synthetic experiment results with Algorithm 2.
+
+<!-- image -->
+
+iteration, the approximate algorithm takes more iterations to converge, but has smaller per-iteration complexity, and smaller total time complexity.
+
+Table 10: Summary of hyper-parameters for the synthetic data experiments in Figure 8.
+
+| Hyperparameters     |   Figure 8a |   Figure 8b |   Figure 8c |   Figure 8d |
+|----------|----------|----------|----------|----------|
+| step size α t max c |         0.1 |        0.06 |        0.15 |        0.15 |
+| iterations          |       100   |      100    |      250    |      250    |
+| h          |         6   |        6    |        0.1  |        0.1  |
+
+We conduct another experiment to verify that the scale invariance can be preserved. We use the same objective as above, but scale the second one by 2. We use a fixed initialization θ 0 = 0 . 3 · [ 1 q/ 2 ; -1 q/ 2 ] for this experiment. The other hyperparameters are the same as the default. We use both F ( θ 0 ) and F (0) as the reference points and choose B h such that B h ( F ( θ 0 ) -F (0)) = 0 . Results in Figure 7 show that for different scales, the trajectory and the converging solution are the same.
+
+Table 11: Summary of average run time in seconds (s) or minutes (m) and number of iterations or epochs of different methods on different datasets. We use Algorithm 1 for the synthetic experiments, and Algorithm 3 for the other two experiments.
+
+| Datasets          | Metrics          | LS          | PMTL          | EPO          | FERERO          |
+|----------|----------|----------|----------|----------|----------|
+| Synthetic, Figures 3(a-c) | Iterations Per-iteration run time Total run time | 100 3.50E-4s 0.035s | 100 7.67E-4s 0.0767s | 60 4.93E-3s 0.296s | 10 7.50E-4s 0.0075s |
+| Synthetic, Figures 3(d-f) | Iterations Per-iteration run time Total run time | 100 3.10E-4s 0.031s | 200 7.65E-4s 0.153s  | 80 4.93E-3s 0.394s | 200 7.30E-4s 0.146s |
+| Multi-MNIST/Fashion/F+M   | Epochs Per-epoch run time Total run time         | 100 3.54s 5.9m      | 100 11.88s 19.8m     | 100 9.66s 16.1m    | 100 7.02s 11.7m     |
+
+##

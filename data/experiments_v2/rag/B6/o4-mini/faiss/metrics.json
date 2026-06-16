@@ -1,0 +1,84 @@
+{
+  "benchmark_path": "/Users/alirezadaghigh/Desktop/Peerify/data/valid_benchmarks/B6_human.jsonl",
+  "benchmark_name": "B6_human",
+  "retriever": "faiss",
+  "llm_model": "o4-mini",
+  "top_k": 10,
+  "total_processed": 150,
+  "total_skipped": 0,
+  "retrieval_metrics": {},
+  "classification_metrics": {
+    "accuracy": 0.22,
+    "per_label": {
+      "Contradicted": {
+        "precision": 0.1724137931034483,
+        "recall": 0.29411764705882354,
+        "f1": 0.21739130434782608,
+        "support": 34
+      },
+      "Not Determined": {
+        "precision": 0.14814814814814814,
+        "recall": 0.38095238095238093,
+        "f1": 0.21333333333333335,
+        "support": 21
+      },
+      "Partially Supported": {
+        "precision": 0.5555555555555556,
+        "recall": 0.09803921568627451,
+        "f1": 0.16666666666666666,
+        "support": 51
+      },
+      "Supported": {
+        "precision": 0.3448275862068966,
+        "recall": 0.22727272727272727,
+        "f1": 0.273972602739726,
+        "support": 44
+      }
+    },
+    "macro_avg": {
+      "precision": 0.3052362707535121,
+      "recall": 0.25009549274255155,
+      "f1": 0.21784097677188802
+    },
+    "weighted_avg": {
+      "precision": 0.3498595146871009,
+      "recall": 0.22,
+      "f1": 0.21617399245582683
+    },
+    "confusion_matrix": {
+      "labels": [
+        "Contradicted",
+        "Not Determined",
+        "Partially Supported",
+        "Supported"
+      ],
+      "matrix": [
+        [
+          10,
+          19,
+          1,
+          4
+        ],
+        [
+          9,
+          8,
+          1,
+          3
+        ],
+        [
+          17,
+          17,
+          5,
+          12
+        ],
+        [
+          22,
+          10,
+          2,
+          10
+        ]
+      ]
+    }
+  },
+  "dry_run": false
+}

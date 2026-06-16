@@ -1,0 +1,107 @@
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [Phase 1] Building/loading retrieval cache for faiss/B6_human top-10...
+  [cache] loaded 150 retrieval results from data/experiments_v2/retrieval_cache/B6_human__faiss__top10.jsonl
+  [Phase 2] Running LLM verification async (8 concurrent)...
+Processed 10/150 claims...
+Processed 20/150 claims...
+Processed 30/150 claims...
+Processed 40/150 claims...
+Processed 50/150 claims...
+Processed 60/150 claims...
+Processed 70/150 claims...
+Processed 80/150 claims...
+Processed 90/150 claims...
+Processed 100/150 claims...
+Processed 110/150 claims...
+Processed 120/150 claims...
+Processed 130/150 claims...
+Processed 140/150 claims...
+Processed 150/150 claims...
+
+Results saved to: data/experiments_v2/rag/B6/o4-mini/faiss/results.jsonl
+Metrics saved to: data/experiments_v2/rag/B6/o4-mini/faiss/metrics.json
+{
+  "benchmark_path": "/Users/alirezadaghigh/Desktop/Peerify/data/valid_benchmarks/B6_human.jsonl",
+  "benchmark_name": "B6_human",
+  "retriever": "faiss",
+  "llm_model": "o4-mini",
+  "top_k": 10,
+  "total_processed": 150,
+  "total_skipped": 0,
+  "retrieval_metrics": {},
+  "classification_metrics": {
+    "accuracy": 0.22,
+    "per_label": {
+      "Contradicted": {
+        "precision": 0.1724137931034483,
+        "recall": 0.29411764705882354,
+        "f1": 0.21739130434782608,
+        "support": 34
+      },
+      "Not Determined": {
+        "precision": 0.14814814814814814,
+        "recall": 0.38095238095238093,
+        "f1": 0.21333333333333335,
+        "support": 21
+      },
+      "Partially Supported": {
+        "precision": 0.5555555555555556,
+        "recall": 0.09803921568627451,
+        "f1": 0.16666666666666666,
+        "support": 51
+      },
+      "Supported": {
+        "precision": 0.3448275862068966,
+        "recall": 0.22727272727272727,
+        "f1": 0.273972602739726,
+        "support": 44
+      }
+    },
+    "macro_avg": {
+      "precision": 0.3052362707535121,
+      "recall": 0.25009549274255155,
+      "f1": 0.21784097677188802
+    },
+    "weighted_avg": {
+      "precision": 0.3498595146871009,
+      "recall": 0.22,
+      "f1": 0.21617399245582683
+    },
+    "confusion_matrix": {
+      "labels": [
+        "Contradicted",
+        "Not Determined",
+        "Partially Supported",
+        "Supported"
+      ],
+      "matrix": [
+        [
+          10,
+          19,
+          1,
+          4
+        ],
+        [
+          9,
+          8,
+          1,
+          3
+        ],
+        [
+          17,
+          17,
+          5,
+          12
+        ],
+        [
+          22,
+          10,
+          2,
+          10
+        ]
+      ]
+    }
+  },
+  "dry_run": false
+}

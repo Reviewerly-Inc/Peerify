@@ -1,0 +1,187 @@
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [Phase 1] Building/loading retrieval cache for faiss/B2_reviewer_author top-10...
+  [cache] loaded 800 retrieval results from data/experiments_v2/retrieval_cache/B2_reviewer_author__faiss__top10.jsonl
+  [resume] 723 entries already done — skipping LLM calls for those.
+  [Phase 2] Running LLM verification async (8 concurrent)...
+Processed 730/800 claims...
+Processed 740/800 claims...
+Processed 750/800 claims...
+Processed 760/800 claims...
+Processed 770/800 claims...
+Processed 780/800 claims...
+Processed 790/800 claims...
+Processed 800/800 claims...
+
+Results saved to: data/experiments_v2/rag/B2/claude-haiku-4-5-20251001/faiss/results.jsonl
+Metrics saved to: data/experiments_v2/rag/B2/claude-haiku-4-5-20251001/faiss/metrics.json
+{
+  "benchmark_path": "/Users/alirezadaghigh/Desktop/Peerify/data/benchmark/B2_reviewer_author.jsonl",
+  "benchmark_name": "B2_reviewer_author",
+  "retriever": "faiss",
+  "llm_model": "claude-haiku-4-5-20251001",
+  "top_k": 10,
+  "total_processed": 800,
+  "total_skipped": 0,
+  "retrieval_metrics": {},
+  "classification_metrics": {
+    "accuracy": 0.22375,
+    "per_label": {
+      "Contradicted": {
+        "precision": 0.1760204081632653,
+        "recall": 0.46621621621621623,
+        "f1": 0.25555555555555554,
+        "support": 148
+      },
+      "Not Determined": {
+        "precision": 0.1024390243902439,
+        "recall": 0.31343283582089554,
+        "f1": 0.15441176470588236,
+        "support": 67
+      },
+      "Partially Supported": {
+        "precision": 0.4406779661016949,
+        "recall": 0.17391304347826086,
+        "f1": 0.24940047961630696,
+        "support": 299
+      },
+      "Supported": {
+        "precision": 0.43529411764705883,
+        "recall": 0.12937062937062938,
+        "f1": 0.19946091644204852,
+        "support": 286
+      }
+    },
+    "macro_avg": {
+      "precision": 0.28860787907556573,
+      "recall": 0.2707331812215005,
+      "f1": 0.21470717907994835
+    },
+    "weighted_avg": {
+      "precision": 0.3614640806922191,
+      "recall": 0.22375,
+      "f1": 0.22473046995652252
+    },
+    "confusion_matrix": {
+      "labels": [
+        "Contradicted",
+        "Not Determined",
+        "Partially Supported",
+        "Supported"
+      ],
+      "matrix": [
+        [
+          69,
+          42,
+          28,
+          9
+        ],
+        [
+          32,
+          21,
+          5,
+          9
+        ],
+        [
+          150,
+          67,
+          52,
+          30
+        ],
+        [
+          141,
+          75,
+          33,
+          37
+        ]
+      ]
+    }
+  },
+  "dry_run": false
+}
+
+Metrics saved to: data/experiments_v2/rag/B2/claude-haiku-4-5-20251001/faiss/metrics.json
+{
+  "benchmark_path": "/Users/alirezadaghigh/Desktop/Peerify/data/benchmark/B2_reviewer_author.jsonl",
+  "benchmark_name": "B2_reviewer_author",
+  "retriever": "faiss",
+  "llm_model": "claude-haiku-4-5-20251001",
+  "top_k": 10,
+  "total_processed": 800,
+  "total_skipped": 0,
+  "retrieval_metrics": {},
+  "classification_metrics": {
+    "accuracy": 0.22,
+    "per_label": {
+      "Contradicted": {
+        "precision": 0.17647058823529413,
+        "recall": 0.46621621621621623,
+        "f1": 0.2560296846011132,
+        "support": 148
+      },
+      "Not Determined": {
+        "precision": 0.0970873786407767,
+        "recall": 0.29850746268656714,
+        "f1": 0.14652014652014653,
+        "support": 67
+      },
+      "Partially Supported": {
+        "precision": 0.4260869565217391,
+        "recall": 0.16387959866220736,
+        "f1": 0.23671497584541062,
+        "support": 299
+      },
+      "Supported": {
+        "precision": 0.4318181818181818,
+        "recall": 0.13286713286713286,
+        "f1": 0.20320855614973263,
+        "support": 286
+      }
+    },
+    "macro_avg": {
+      "precision": 0.28286577630399795,
+      "recall": 0.2653676026080309,
+      "f1": 0.21061834077910077
+    },
+    "weighted_avg": {
+      "precision": 0.3544031267846945,
+      "recall": 0.22,
+      "f1": 0.22075583496801982
+    },
+    "confusion_matrix": {
+      "labels": [
+        "Contradicted",
+        "Not Determined",
+        "Partially Supported",
+        "Supported"
+      ],
+      "matrix": [
+        [
+          69,
+          42,
+          28,
+          9
+        ],
+        [
+          33,
+          20,
+          5,
+          9
+        ],
+        [
+          150,
+          68,
+          49,
+          32
+        ],
+        [
+          139,
+          76,
+          33,
+          38
+        ]
+      ]
+    }
+  },
+  "dry_run": false
+}

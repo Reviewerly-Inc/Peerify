@@ -1,0 +1,148 @@
+{
+  "benchmark_path": "/Users/alirezadaghigh/Desktop/Peerify/data/benchmark/B1_golden_supported.jsonl",
+  "benchmark_name": "B1_golden_supported",
+  "retriever": "oracle",
+  "llm_model": "qwen/qwen3-8b",
+  "top_k": 10,
+  "total_processed": 500,
+  "total_skipped": 0,
+  "retrieval_metrics": {
+    "recall@1": {
+      "mean": 0.754,
+      "std": 0.43067853440820564,
+      "median": 1.0,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "ndcg@1": {
+      "mean": 0.754,
+      "std": 0.43067853440820564,
+      "median": 1.0,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "recall@3": {
+      "mean": 0.754,
+      "std": 0.43067853440820564,
+      "median": 1.0,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "ndcg@3": {
+      "mean": 0.754,
+      "std": 0.43067853440820564,
+      "median": 1.0,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "recall@5": {
+      "mean": 0.754,
+      "std": 0.43067853440820564,
+      "median": 1.0,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "ndcg@5": {
+      "mean": 0.754,
+      "std": 0.43067853440820564,
+      "median": 1.0,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "recall@10": {
+      "mean": 0.754,
+      "std": 0.43067853440820564,
+      "median": 1.0,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "ndcg@10": {
+      "mean": 0.754,
+      "std": 0.43067853440820564,
+      "median": 1.0,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "mrr": {
+      "mean": 0.754,
+      "std": 0.43067853440820564,
+      "median": 1.0,
+      "min": 0.0,
+      "max": 1.0
+    }
+  },
+  "classification_metrics": {
+    "accuracy": 0.872,
+    "per_label": {
+      "Contradicted": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "Not Determined": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "Partially Supported": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "Supported": {
+        "precision": 1.0,
+        "recall": 0.872,
+        "f1": 0.9316239316239316,
+        "support": 500
+      }
+    },
+    "macro_avg": {
+      "precision": 0.25,
+      "recall": 0.218,
+      "f1": 0.2329059829059829
+    },
+    "weighted_avg": {
+      "precision": 1.0,
+      "recall": 0.872,
+      "f1": 0.9316239316239316
+    },
+    "confusion_matrix": {
+      "labels": [
+        "Contradicted",
+        "Not Determined",
+        "Partially Supported",
+        "Supported"
+      ],
+      "matrix": [
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          7,
+          5,
+          52,
+          436
+        ]
+      ]
+    }
+  },
+  "dry_run": false
+}

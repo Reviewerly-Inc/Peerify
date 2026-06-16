@@ -1,0 +1,1613 @@
+## BENIGN OVERFITTING AND GROKKING IN RELU NETWORKS FOR XOR CLUSTER DATA
+
+Zhiwei Xu † , Yutong Wang † , Spencer Frei ‡ , Gal Vardi ♢ , Wei Hu † † University of Michigan, ‡ University of California, Davis, ♢ TTI-Chicago and Hebrew University
+
+{ zhiweixu,yutongw,vvh } @umich.edu,sfrei@ucdavis.edu,galvardi@ttic.edu
+
+## ABSTRACT
+
+Neural networks trained by gradient descent (GD) have exhibited a number of surprising generalization behaviors. First, they can achieve a perfect fit to noisy training data and still generalize near-optimally, showing that overfitting can sometimes be benign. Second, they can undergo a period of classical, harmful overfittingachieving a perfect fit to training data with near-random performance on test data-before transitioning ('grokking') to near-optimal generalization later in training. In this work, we show that both of these phenomena provably occur in two-layer ReLU networks trained by GD on XOR cluster data where a constant fraction of the training labels are flipped. In this setting, we show that after the first step of GD, the network achieves 100% training accuracy, perfectly fitting the noisy labels in the training data, but achieves near-random test accuracy. At a later training step, the network achieves near-optimal test accuracy while still fitting the random labels in the training data, exhibiting a 'grokking' phenomenon. This provides the first theoretical result of benign overfitting in neural network classification when the data distribution is not linearly separable. Our proofs rely on analyzing the feature learning process under GD, which reveals that the network implements a non-generalizable linear classifier after one step and gradually learns generalizable features in later steps.
+
+## 1 INTRODUCTION
+
+Classical wisdom in machine learning regards overfitting to noisy training data as harmful for generalization, and regularization techniques such as early stopping have been developed to prevent overfitting. However, modern neural networks can exhibit a number of counterintuitive phenomena that contravene this classical wisdom. Two intriguing phenomena that have attracted significant attention in recent years are benign overfitting (Bartlett et al., 2020) and grokking (Power et al., 2022):
+
+- Benign overfitting: A model perfectly fits noisily labeled training data, but still achieves near-optimal test error.
+- Grokking: A model initially achieves perfect training accuracy but no generalization (i.e. no better than a random predictor), and upon further training, transitions to almost perfect generalization.
+
+Recent theoretical work has established benign overfitting in a variety of settings, including linear regression (Hastie et al., 2019; Bartlett et al., 2020), linear classification (Chatterji &amp; Long, 2021a; Wang &amp; Thrampoulidis, 2021), kernel methods (Belkin et al., 2019; Liang &amp; Rakhlin, 2020), and neural network classification (Frei et al., 2022b; Kou et al., 2023). However, existing results of benign overfitting in neural network classification settings are restricted to linearly separable data distributions, leaving open the question of how benign overfitting can occur in fully non-linear settings. For grokking, several recent papers (Nanda et al., 2023; Gromov, 2023; Varma et al., 2023) have proposed explanations, but to the best of our knowledge, no prior work has established a rigorous proof of grokking in a neural network setting.
+
+In this work, we characterize a setting in which both benign overfitting and grokking provably occur. We consider a two-layer ReLU network trained by gradient descent on a binary classification task
+
+Figure 1: Comparing train and test accuracies of a two-layer neural network (2.1) trained on noisily labeled XOR data over 100 independent runs. Left/right panel shows benign overfitting and grokking when the step size is larger/smaller compared to the weight initialization scale. For plotting the x-axis, we add 1 to time so that the initialization t = 0 can be shown in log scale. See Appendix A.7 for details of the experimental setup.
+
+<!-- image -->
+
+Figure 2: Left four panels : 2-dimensional projection of the noisily labeled XOR cluster data (Definition 2.1) and the decision boundary of the neural network (2.1) classifier restricted to the subspace spanned by the cluster means at times t = 0 , 1 and 15 . Right two panels : 2-dimensional projection of the neuron weights plotted at times t = 1 and 15 .
+
+<!-- image -->
+
+defined by an XOR cluster data distribution (Figure 2). Specifically, datapoints from the positive class are drawn from a mixture of two high-dimensional Gaussian distributions 1 2 N ( µ 1 , I ) + 1 2 N ( -µ 1 , I ) , and datapoints from the negative class are drawn from 1 2 N ( µ 2 , I ) + 1 2 N ( -µ 2 , I ) , where µ 1 and µ 2 are orthogonal vectors. We then allow a constant fraction of the labels to be flipped. In this setting, we rigorously prove the following results: (i) One-step catastrophic overfitting: After one gradient descent step, the network perfectly fits every single training datapoint (no matter if it has a clean or flipped label), but has test accuracy close to 50% , performing no better than random guessing. (ii) Grokking and benign overfitting: After training for more steps, the network undergoes a 'grokking' period from catastrophic to benign overfitting-it eventually reaches near 100% test accuracy, while maintaining 100% training accuracy the whole time. This behavior can be seen in Figure 1, where we also see that with a smaller step size the same grokking phenomenon occurs but with a delayed time for both overfitting and generalization.
+
+Our results provide the first theoretical characterization of benign overfitting in a truly non-linear setting involving training a neural network on a non-linearly separable distribution. Interestingly, prior work on benign overfitting in neural networks for linearly separable distributions (Frei et al., 2022b; Cao et al., 2022; Xu &amp; Gu, 2023; Kou et al., 2023) have not shown a time separation between catastrophic overfitting and generalization, which suggests that the XOR cluster data setting is fundamentally different.
+
+Our proofs rely on analyzing the feature learning behavior of individual neurons over the gradient descent trajectory. After one training step, we prove that the network approximately implements a linear classifier over the underlying data distribution, which is able to overfit all the training datapoints but unable to generalize. Upon further training, the neurons gradually align with the core features ± µ 1 and ± µ 2 , which is sufficient for generalization. See Figure 2 for visualizations of the network's decision boundary and neuron weights at different time steps, which confirm our theory.
+
+## 1.1 ADDITONAL RELATED WORK
+
+Benign overfitting. The literature on benign overfitting (also known as harmless interpolation) is now immense; for a general overview, we refer the readers to the surveys Bartlett et al. (2021); Belkin (2021); Dar et al. (2021). We focus here on those works on benign overfitting in neural networks. Frei et al. (2022b) showed that two-layer networks with smooth leaky ReLU activations
+
+trained by gradient descent (GD) exhibit benign overfitting when trained on a high-dimensional binary cluster distribution. Xu &amp; Gu (2023) extended their results to more general activations like ReLU. Cao et al. (2022) showed that two-layer convolutional networks with polynomial-ReLU activations trained by GD exhibit benign overfitting for image-patch data; Kou et al. (2023) extended their results to allow for label-flipping noise and standard ReLU activations. Each of these works used a trajectory-based analysis and none of them identified a grokking phenomenon. Frei et al. (2023a); Kornowski et al. (2023) showed how stationary points of margin-maximization problems associated with homogeneous neural network training problems can exhibit benign overfitting. Finally, Mallinar et al. (2022) proposed a taxonomy of overfitting behaviors in neural networks, whereby overfitting is 'catastrophic' if test-time performance is comparable to a random guess, 'benign' if it is near-optimal, and 'tempered' if it lies between catastrophic and benign.
+
+Grokking. The phenomenon of grokking was first identified by Power et al. (2022) in decoderonly transformers trained on algorithmic datasets. Liu et al. (2022) provided an effective theory of representation learning to understand grokking. Thilak et al. (2022) attributed grokking to the slingshot mechanism, which can be measured by the cyclic phase transitions between stable and unstable training regimes. ˇ Zunkoviˇ c &amp; Ilievski (2022) showed a time separation between achieving zero training error and zero test error in a binary classification task on a linearly separable distribution. Liu et al. (2023) identified a large initialization scale together with weight decay as a mechanism for grokking. Barak et al. (2022); Nanda et al. (2023) proposed progress metrics to measure the progress towards generalization during training. Davies et al. (2023) hypothesized a pattern-learning model for grokking and first reported a model-wise grokking phenomenon. Merrill et al. (2023) studied the learning dynamics in a two-layer neural network on a sparse parity task, attributing grokking to the competition between dense and sparse subnetworks. Varma et al. (2023) utilized circuit efficiency to interpret grokking and discovered two novel phenomena called ungrokking and semi-grokking.
+
+Feature learning for XOR distributions. The behavior of neural networks trained on the XOR cluster distribution we consider here, or its variants like the sparse parity problem, have been extensively studied in recent years. Wei et al. (2019) showed that neural networks in the mean-field regime, where neural networks can learn features, have better sample complexity guarantees than neural networks in the neural tangent kernel (NTK) regime in this setting. Barak et al. (2022); Telgarsky (2023) examined the sample complexity of learning sparse parities on the hypercube for neural networks trained by SGD. Most related to this work, Frei et al. (2022a) characterized the dynamics of GD in ReLU networks in the same distributional setting we consider here, namely the XOR cluster with label-flipping noise. They showed that by early-stopping, the neural network achieves perfect (clean) test accuracy although the training error is close to the label noise rate; in particular, their network achieved optimal generalization without overfitting, which is fundamentally different from our result. By contrast, we show that the network first exhibits catastrophic overfitting before transitioning to benign overfitting later in training. 1
+
+## 2 PRELIMINARIES
+
+## 2.1 NOTATION
+
+For a vector x , denote its Euclidean norm by ∥ x ∥ . For a matrix X , denote its Frobenius norm by ∥ X ∥ F and its spectral norm by ∥ X ∥ . Denote the indicator function by I ( · ) . Denote the sign of a scalar x by sgn( x ) . Denote the cosine similarity of two vectors u, v by cossim( u, v ) := ⟨ u,v ⟩ ∥ u ∥∥ v ∥ . Denote a multivariate Gaussian distribution with mean vector µ and covariance matrix Σ by N ( µ, Σ) . Denote by ∑ j q j N ( µ j , Σ j ) a mixture of Gaussian distributions, namely, with probability q j , the sample is generated from N ( µ j , Σ j ) . Let I p be the p × p identity matrix. For a finite set A = { a i } n i =1 , denote the uniform distribution on A by Unif A . For a random variable X , denote its expectation by E [ X ] . For an integer d ≥ 1 , denote the set { 1 , · · · , d } by [ d ] . For a finite set A , let |A| be its cardinality. We use {± µ } to represent the set { + µ, -µ } . For two positive sequences { x n } , { y n } , we say x n = O ( y n ) (respectively x n = Ω( y n ) ), if there exists a universal constant C &gt; 0 such
+
+1 The reason for the different behaviors between our work and Frei et al. (2022a) is because they work in a setting with a larger signal-to-noise ratio (i.e., the norm of the cluster means is larger than the one we consider).
+
+that x n ≤ Cy n (respectively x n ≥ Cy n ) for all n , and say x n = o ( y n ) if lim n →∞ x n y n = 0 . We say x n = Θ( y n ) if x n = O ( y n ) and y n = O ( x n ) .
+
+## 2.2 DATA GENERATION SETTING
+
+Let µ 1 , µ 2 ∈ R p be two orthogonal vectors, i.e. µ ⊤ 1 µ 2 = 0 . 2 Let η ∈ [0 , 1 / 2) be the label flipping probability.
+
+Definition 2.1 (XOR cluster data) . Define P clean as the distribution over the space R p ×{± 1 } of labelled data such that a datapoint ( x, ˜ y ) ∼ P clean is generated according to the following procedure: First, sample the label ˜ y ∼ Unif {± 1 } . Second, generate x as follows:
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+Define P to be the distribution over R p × {± 1 } which is the η -noise-corrupted version of P clean , namely: to generate a sample ( x, y ) ∼ P , first generate ( x, ˜ y ) ∼ P clean, and then let y = ˜ y with probability 1 -η , and y = -˜ y with probability η .
+
+We consider n training datapoints { ( x i , y i ) } n i =1 generated i.i.d from the distribution P . We assume the sample size n to be sufficiently large (i.e., larger than any universal constant appearing in this paper). Note the x i 's are from a mixture of four Gaussians centered at ± µ 1 and ± µ 2 . We denote centers := {± µ 1 , ± µ 2 } for convenience. For simplicity, we assume ∥ µ 1 ∥ = ∥ µ 2 ∥ , omit the subscripts and denote them by ∥ µ ∥ .
+
+## 2.3 NEURAL NETWORK, LOSS FUNCTION, AND TRAINING PROCEDURE
+
+We consider a two-layer neural network of width m of the form
+
+<!-- formula-not-decoded -->
+
+where w 1 , . . . , w m ∈ R p are the first-layer weights, a 1 , . . . , a m ∈ R are the second-layer weights, and the activation ϕ ( z ) := max { 0 , z } is the ReLU function. We denote W = [ w 1 , . . . , w m ] ∈ R p × m and a = [ a 1 , . . . , a m ] ⊤ ∈ R m . We assume the second-layer weights are sampled according to a j i.i.d. ∼ Unif {± 1 √ m } and are fixed during the training process.
+
+We define the empirical risk using the logistic loss function ℓ ( z ) = log(1 + exp( -z )) : ̂ L ( W ) := 1 n ∑ n i =1 ℓ ( y i f ( x i ; W )) . We use gradient descent (GD) W ( t +1) = W ( t ) -α ∇ ̂ L ( W ( t ) ) to update the first-layer weight matrix W , where α is the step size. Specifically, at time t = 0 we randomly initialize the weights by
+
+<!-- formula-not-decoded -->
+
+where ω 2 init is the initialization variance; at each time step t = 0 , 1 , 2 , . . . , the GD update can be calculated as
+
+<!-- formula-not-decoded -->
+
+where g ( t ) i := -ℓ ′ ( y i f ( x i ; W ( t ) )) .
+
+## 3 MAIN RESULTS
+
+Given a large enough universal constant C , we make the following assumptions:
+
+2 Our results hold when µ 1 and µ 2 are near-orthogonal. We assume exact orthogonality for ease of presentation.
+
+- (A1) The norm of the mean satisfies ∥ µ ∥ 2 ≥ Cn 0 . 51 √ p .
+- (A2) The dimension of the feature space satisfies p ≥ Cn 2 ∥ µ ∥ 2 .
+- (A3) The noise rate satisfies η ≤ 1 /C .
+- (A4) The step size satisfies α ≤ 1 / ( Cnp ) .
+- (A5) The initialization variance satisfies ω init nm 3 / 2 p ≤ α ∥ µ ∥ 2 .
+- (A6) The number of neurons satisfies m ≥ Cn 0 . 02 .
+
+Assumption (A1) concerns the signal-to-noise ratio (SNR) in the distribution, where the order 0 . 51 can be extended to any constant strictly larger than 1 2 . The assumption of high-dimensionality (A2) is important for enabling benign overfitting, and implies that the training datapoints are near-orthogonal. For a given n , these two assumptions are simultaneously satisfied if ∥ µ ∥ = Θ( p β ) where β ∈ ( 1 4 , 1 2 ) and p is a sufficiently large polynomial in n . Assumption (A3) ensures that the label noise rate is at most a constant. While Assumption (A4) ensures the step size is small enough to allow for a variant of smoothness between different steps, Assumption (A5) ensures that the step size is large relative to the initialization scale so that the behavior of the network after a single step of GD is significantly different from that at random initialization. Assumption (A6) ensures the number of neurons is large enough to allow for concentration arguments at random initialization.
+
+With these assumptions in place, we can state our main theorem which characterizes the training error and test error of the neural network at different times during the training trajectory.
+
+Theorem 3.1. Suppose that Assumptions (A1)-(A6) hold. With probability at least 1 -n -Ω(1) -O (1 / √ m ) over the random data generation and initialization of the weights, we have:
+
+- The classifier sgn( f ( x ; W ( t ) )) can correctly classify all training datapoints for 1 ≤ t ≤ √ n :
+- .
+
+<!-- formula-not-decoded -->
+
+- The classifier sgn( f ( x ; W ( t ) )) has near-random test error at t = 1 :
+
+̸
+
+<!-- formula-not-decoded -->
+
+- The classifier sgn( f ( x ; W ( t ) )) generalizes when Cn 0 . 01 ≤ t ≤ √ n
+
+̸
+
+- : .
+
+<!-- formula-not-decoded -->
+
+Theorem 3.1 shows that at time t = 1 , the network achieves 100% training accuracy despite the constant fraction of flipped labels in the training data. The second part of the theorem shows that this overfitting is catastrophic as the test error is close to that of a random guess. On the other hand, by the first and third parts of the theorem, as long as the time step t satisfies Cn 0 . 01 ≤ t ≤ √ n , the network continues to overfit to the training data while simultaneously achieving test error exp( -Ω( n 2 . 01 )) , which guarantees a near-zero test error for large n . In particular, the network exhibits benign overfitting, and it achieves this by grokking. Notably, Theorem 3.1 is the first guarantee for benign overfitting in neural network classification for a nonlinear data distribution, in contrast to prior works which required linearly separable distributions (Frei et al., 2022b; 2023a; Cao et al., 2022; Xu &amp; Gu, 2023; Kou et al., 2023; Kornowski et al., 2023).
+
+We note that Theorem 3.1 requires an upper bound on the number of iterations of gradient descent, i.e. it does not provide a guarantee as t → ∞ . At a technical level, this is needed so that we can guarantee that the ratio of the sigmoid losses between all samples r ( t ) := max i,j ∈ [ n ] g ( t ) i g ( t ) j is close to
+
+1 , and we show that this holds if t ≤ √ n . This property prevents the training data with flipped labels from having an out-sized influence on the feature learning dynamics. Prior works in other settings have shown that r ( t ) is at most a large constant for any step t for a similar purpose (Frei et al., 2022b; Xu &amp; Gu, 2023), however the dynamics of learning in the XOR setting are more intricate and require a tighter bound on r ( t ) . We leave the question of generalizing our results to longer training times for future work. In Section 4, we provide an overview of the key ingredients to the proof of Theorem 3.1.
+
+## 4 PROOF SKETCH
+
+̸
+
+We first introduce some additional notation. For i ∈ [ n ] , let ¯ x i ∈ centers = {± µ 1 , ± µ 2 } be the mean of the Gaussian from which the sample ( x i , y i ) is drawn. For each ν ∈ centers , define I ν = { i ∈ [ n ] : ¯ x i = ν } , i.e., the set of indices i such that x i belongs to the cluster centered at ν . Thus, {I ν } ν ∈ centers is a partition of [ n ] . Moreover, define C = { i ∈ [ n ] : y i = ˜ y i } and N = { i ∈ [ n ] : y i = ˜ y i } to be the set of clean and noisy samples, respectively. Further we define for each ν ∈ centers the following sets:
+
+<!-- formula-not-decoded -->
+
+Let c ν = |C ν | and n ν = |N ν | . Define the training input data matrix X = [ x 1 , . . . , x n ] ⊤ . Let ε ∈ (0 , 10 -3 / 4) be a universal constant.
+
+In Section 4.1, we present several properties satisfied with high probability by the training data and random initialization, which are crucial in our proof. In Section 4.2, we outline the major steps in the proof of Theorem 3.1.
+
+## 4.1 PROPERTIES OF THE TRAINING DATA AND RANDOM INITIALIZATION
+
+Lemma 4.1 (Properties of training data) . Suppose Assumptions (A1) and (A2) hold. Let the training data { ( x i , y i ) } n i =1 be sampled i.i.d from P as in Definition 2.1. With probability at least 1 -O ( n -ε ) the training data satisfy properties (B1)-(B4) defined below.
+
+- (B1) For all k ∈ [ n ] , max ν ∈ centers ⟨ x k -¯ x k , ν ⟩ ≤ 10 √ log n ∥ µ ∥ and |∥ x k ∥ 2 -p -∥ µ ∥ 2 | ≤ 10 √ p log n .
+
+̸
+
+- (B2) For each i, k ∈ [ n ] such that i = k , we have |⟨ x i , x k ⟩ - ⟨ ¯ x i , ¯ x k ⟩| ≤ 10 √ p log n.
+- (B3) For ν ∈ centers , we have | c ν + n ν -n/ 4 | ≤ √ εn log n and | n ν -η ( c ν + n ν ) | ≤ √ εηn log n .
+- (B4) For ν ∈ centers , we have | c ν + n ν -c -ν -n -ν | ≥ n 1 / 2 -ε and | n ν -n -ν | ≥ ηn 1 / 2 -ε .
+
+Denote by G data the set of training data satisfying conditions (B1)-(B4) . Thus, the result can be stated succinctly as P ( X ∈ G data ) ≥ 1 -O ( n -ε ) .
+
+The proof of Lemma 4.1 can be found in Appendix A.2.1. Conditions (B1) and (B2) are essentially the same as Frei et al. (2022b, Lemma 4.3) or Chatterji &amp; Long (2021b, Lemma 10). Conditions (B3) and (B4) concern the number of clean and noisy examples in each cluster, and can be proved by concentration and anti-concentration arguments, respectively.
+
+Lemma 4.1 has an important corollary.
+
+̸
+
+Corollary 4.2 (Near-orthogonality of training data) . Suppose Assumptions (A1), (A2), and Conditions (B1), (B2) from Lemma 4.1 all hold. Then for all 1 ≤ i = k ≤ n ,
+
+<!-- formula-not-decoded -->
+
+This near-orthogonality comes from the high dimensionality of the feature space (i.e., Assumption (A2)) and will be crucially used throughout the proofs on optimization and generalization of the network. The proof of Corollary 4.2 can be found in Appendix A.2.1.
+
+Next, we divide the neuron indices into two sets according to the sign of the corresponding secondlayer weight:
+
+<!-- formula-not-decoded -->
+
+We will conveniently call them positive and negative neurons. Our next lemma shows that some properties of the random initialization hold with a large probability. The proof details can be found in Appendix A.3.1.
+
+Lemma 4.3 (Properties of the random weight initialization) . Suppose Assumptions (A1), (A2) and (A6) hold. All conditions below simultaneously hold with probability at least 1 -O ( n -ε ) over the random initialization:
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+The result can be stated equivalently as follows: Denote the set of W (0) satisfying condition (C1) by G W . Denote the set of a = ( a j ) j m =1 satisfying condition (C2) by G A . Then P ( a ∈ G A , W (0) ∈ G W ) ≥ 1 -O ( n -ε ) .
+
+We say that the sample i activates neuron j at time t if ⟨ w ( t ) j , x i ⟩ &gt; 0 . Now, for each neuron j ∈ [ m ] , time t ≥ 0 and ν ∈ centers , define the set of indices i of samples x i with clean (resp. noisy) labels from the cluster centered at ν that activates neuron j at time t :
+
+<!-- formula-not-decoded -->
+
+Moreover, we define
+
+<!-- formula-not-decoded -->
+
+For κ ∈ [0 , 1 / 2) and ν ∈ centers , a neuron j is said to be ( ν, κ ) -aligned if
+
+<!-- formula-not-decoded -->
+
+The first condition ensures that at initialization, there are at least n 1 / 2 -κ many more samples from cluster ν activating the j -th neuron than from cluster -ν after accounting for cancellations from the noisy labels. The second is a technical condition necessary for trajectory analysis. A neuron j is said to be ( ± ν, κ ) -aligned if it is either ( ν, κ ) -aligned or ( -ν, κ ) -aligned.
+
+Lemma 4.4 (Properties of the interaction between training data and initial weights) . Suppose Assumptions (A1)-(A3) and (A6) hold. Given a ∈ G A (defined in Lemma 4.3) and X ∈ G data (defined in Lemma 4.1), the followings hold with probability at least 1 -O ( n -ε ) over the random initialization W (0) :
+
+- (D1) For all i ∈ [ n ] , the sample x i activates a large proportion of positive and negative neurons, i.e., |{ j ∈ J Pos : ⟨ w (0) j , x i ⟩ &gt; 0 }| ≥ m/ 7 and |{ j ∈ J Neg : ⟨ w (0) j , x i ⟩ &gt; 0 }| ≥ m/ 7 both hold.
+- (D2) For all ν ∈ centers and κ ∈ [0 , 1 2 ) , both |{ j ∈ J Pos : j is ( ν, κ ) -aligned }| ≥ mn -10 ε , and |{ j ∈ J Neg : j is ( ν, κ ) -aligned }| ≥ mn -10 ε .
+- (D3) For all ν ∈ centers , we have ∣ ∣ { j ∈ J Pos : j is ( ± ν, 20 ε ) -aligned } ∣ ∣ ≥ (1 -10 n -20 ε ) |J Pos | . Moreover, the same statement holds if ' J Pos ' is replaced with ' J Neg ' everywhere.
+- (D4) For all ν ∈ centers and κ ∈ [0 , 1 2 ) , let J κ ν, Pos := { j ∈ J Pos : j is ( ν, κ ) -aligned } . Then ∑ j ∈J κ ν, Pos ( c ν -n ν -d (0) -ν,j ) ≥ n 10 |J κ ν, Pos | . Moreover, the same statement holds if ' J Pos ' is replaced with ' J Neg ' everywhere.
+
+Condition (D1) makes sure that the neurons spread uniformly at initialization so that each datapoint activates at least a constant fraction of positive and negative neurons. Condition (D2) guarantees that for each ν ∈ centers , there are a fraction of neurons aligning with ν more than -ν . Condition (D3) shows that most neurons will somewhat align with either ν or -ν . Condition (D4) is a technical concentration result. For proof details, see Appendix A.3.2.
+
+Define the set G good as
+
+<!-- formula-not-decoded -->
+
+whose probability is lower bounded by P (( a, W (0) , X ) ∈ G good ) ≥ 1 -O ( n -ε ) . This is a consequence of Lemmas 4.1, 4.3 and 4.4 (see Appendix A.3.3).
+
+Definition 4.5. If the training data X and the initialization a, W (0) belong to G good, we define this circumstance as a 'good run.'
+
+Figure 3: Histograms of inner products between positive neurons and µ 1 or µ 2 pooled over 100 independent runs under the same setting as in Figure 1. Top (resp. bottom) row: Inner products between positive neurons and µ 1 (resp. µ 2 ). While the distributions of the projections of positive neurons w ( t ) j onto the µ 1 and µ 2 directions are nearly the same at times t = 0 , 1 , they become significantly more aligned with ± µ 1 over time. See Appendix A.7 for details of the experimental setup.
+
+<!-- image -->
+
+## 4.2 PROOF SKETCH FOR THEOREM 3.1
+
+In order for the network to learn a generalizable solution for the XOR cluster distribution, we would like positive neurons' (i.e., those with a j &gt; 0 ) weights w j to align with ± µ 1 , and negative neurons' weights to align with ± µ 2 ; we prove that this is satisfied for t ∈ [ Cn 0 . 01 , √ n ] . However, for t = 1 , we show that the network only approximates a linear classifier, which can fit the training data in high dimension but has trivial test error. Figure 3 plots the evolution of the distribution of positive neurons' projections onto both µ 1 and µ 2 , confirming that these neurons are much more aligned with ± µ 1 at a later training time, while they cannot distinguish ± µ 1 and ± µ 2 at t = 1 .
+
+Below we give a sketch of the proofs, and details are in Appendix A.5.
+
+## 4.2.1 ONE-STEP CATASTROPHIC OVERFITTING
+
+Under a good run, we have the following approximation for each neuron after the first iteration:
+
+<!-- formula-not-decoded -->
+
+For details of this approximation, see Appendix A.4.
+
+Let s ij := I ( ⟨ w (0) j , x i ⟩ &gt; 0) . Then, for sufficiently large m , we can approximate the neural network output at t = 1 as
+
+<!-- formula-not-decoded -->
+
+This convergence is ensured by the strong law of large numbers, given the independence of the first-layer and second-layer weights at initialization. This implies that the neural network classifier sgn( f ( · ; W (1) )) behaves similarly to the linear classifier sgn( ⟨ ∑ n i =1 y i x i , ·⟩ ) . It can be shown that this linear classifier achieves 100% training accuracy whenever the training data are near orthogonal (Frei et al., 2023b, Appendix D), but because each class has two clusters with opposing means, linear classifiers only achieve 50% test error for the XOR cluster distribution. Thus at time t = 1 , the network is able to fit the training data but is not capable of generalizing.
+
+## 4.2.2 MULTI-STEP GENERALIZATION
+
+Next, we show that positive (resp. negative) neurons gradually align with one of ± µ 1 (resp. ± µ 2 ), and forget both of ± µ 2 (resp. ± µ 1 ), making the network generalizable. Taking the direction + µ 1 as an example, we define sets of neurons
+
+<!-- formula-not-decoded -->
+
+We have by conditions (D2)-(D3) of Lemma 4.4 that under a good run,
+
+<!-- formula-not-decoded -->
+
+which implies that J 1 contains a certain proportion of J Pos and J 2 covers most of J Neg . The next lemma shows that neurons in J 1 will keep aligning with + µ 1 , but neurons in J 2 will gradually forget + µ 1 .
+
+Lemma 4.6. Suppose that Assumptions (A1)-(A6) hold. Under a good run, we have that for 1 ≤ t ≤ √ n ,
+
+<!-- formula-not-decoded -->
+
+We can see that when t is large, ∑ j ∈J 2 |⟨ w ( t ) j , µ 1 ⟩| / |J 2 | = o ( ∑ j ∈J 1 ⟨ w ( t ) j , + µ 1 ⟩ / |J 1 | ) , thus for x ∼ N (+ µ 1 , I p ) , neurons with j ∈ J 1 will dominate the output of f ( x ; W ( t ) ) . For the other three clusters centered at -µ 1 , + µ 2 , -µ 2 we have similar results, which then lead the model to generalization. Formally, we have the following theorem on generalization.
+
+Theorem 4.7. Suppose that Assumptions (A1)-(A6) hold. Under a good run, for Cn 10 ε ≤ t ≤ √ n , the generalization error of classifier sgn( f ( x, W ( t ) )) has an upper bound
+
+̸
+
+<!-- formula-not-decoded -->
+
+## 5 DISCUSSION
+
+We have shown that two-layer neural networks trained on XOR cluster data with random label noise by GD reveal a number of interesting phenomena. First, early in training, the network interpolates all of the training data but fails to generalize to test data better than random chance, displaying a familiar form of (catastrophic) overfitting. Later in training, the network continues to achieve a perfect fit to the noisy training data but groks useful features so that it can achieve near-zero error on test data, thus exhibiting both grokking and benign overfitting simultaneously. Notably, this provides an example of benign overfitting in neural network classification for a distribution which is not linearly separable.
+
+In contrast to prior works on grokking which found the usage of weight decay to be crucial for grokking (Liu et al., 2022; 2023), we observe grokking without any explicit forms of regularization, revealing the significance of the implicit regularization of GD. In our setting, the catastrophic overfitting stage of grokking occurs because early in training, the network behaves similarly to a linear classifier. This linear classifier is capable of fitting the training data due to the high-dimensionality of the feature space but fails to generalize as linear classifiers are not complex enough to achieve test performance above random chance for the XOR cluster. Later in training, the network groks useful features, corresponding to the cluster means, which allow for good generalization.
+
+There are a few natural questions for future research. First, our analysis requires an upper bound on the number of training steps due to technical reasons; it is intriguing to understand the generalization behavior as time grows to infinity. Second, our proof crucially relies upon the assumption that the training data are nearly-orthogonal which requires that the ambient dimension is large relative to the number of samples. Prior work has shown with experiments that overfitting is less benign in this setting when the dimension is small relative to the number of samples (Frei et al., 2022a, Fig. 2); a precise characterization of the effect of high-dimensional data on generalization remains open.
+
+## ACKNOWLEDGMENTS
+
+YWacknowledges support from the Eric and Wendy Schmidt AI in Science Postdoctoral Fellowship, a Schmidt Futures program. GV acknowledges support from the NSF and the Simons Foundation via the Collaboration on the Theoretical Foundations of Deep Learning. WH acknowledges support from the Google Research Scholar program.
+
+## REFERENCES
+
+- Boaz Barak, Benjamin L. Edelman, Surbhi Goel, Sham Kakade, Eran Malach, and Cyril Zhang. Hidden progress in deep learning: Sgd learns parities near the computational limit. In Advances in Neural Information Processing Systems (NeurIPS) , 2022.
+- Peter L Bartlett, Philip M Long, G´ abor Lugosi, and Alexander Tsigler. Benign overfitting in linear regression. Proceedings of the National Academy of Sciences , 117(48):30063-30070, 2020.
+- Peter L. Bartlett, Andrea Montanari, and Alexander Rakhlin. Deep learning: a statistical viewpoint. Acta Numerica , 30:87-201, 2021.
+- Mikhail Belkin. Fit without fear: remarkable mathematical phenomena of deep learning through the prism of interpolation. Acta Numerica , 30, 2021.
+- Mikhail Belkin, Alexander Rakhlin, and Alexandre B. Tsybakov. Does data interpolation contradict statistical optimality? In International Conference on Artificial Intelligence and Statistics (AISTATS) , 2019.
+- Yuan Cao, Zixiang Chen, Mikhail Belkin, and Quanquan Gu. Benign overfitting in two-layer convolutional neural networks. arXiv preprint arXiv:2202.06526 , 2022.
+- Niladri S. Chatterji and Philip M. Long. Finite-sample analysis of interpolating linear classifiers in the overparameterized regime. Journal of Machine Learning Research , 22(129):1-30, 2021a.
+- Niladri S. Chatterji and Philip M. Long. Finite-sample analysis of interpolating linear classifiers in the overparameterized regime. Journal of Machine Learning Research , 22(129):1-30, 2021b. URL http://jmlr.org/papers/v22/20-974.html .
+- Yehuda Dar, Vidya Muthukumar, and Richard G. Baraniuk. A farewell to the bias-variance tradeoff? an overview of the theory of overparameterized machine learning. Preprint, arXiv:2109.02355 , 2021.
+- Xander Davies, Lauro Langosco, and David Krueger. Unifying grokking and double descent. 2023.
+- Rick Durrett. Probability: theory and examples , volume 49. Cambridge university press, 2019.
+- Spencer Frei, Niladri S Chatterji, and Peter L Bartlett. Random feature amplification: Feature learning and generalization in neural networks. Preprint, arXiv:2202.07626 , 2022a.
+- Spencer Frei, Niladri S. Chatterji, and Peter L. Bartlett. Benign overfitting without linearity: Neural network classifiers trained by gradient descent for noisy linear data. In Conference on Learning Theory (COLT) , 2022b.
+- Spencer Frei, Gal Vardi, Peter L. Bartlett, and Nathan Srebro. Benign overfitting in linear classifiers and leaky relu networks from kkt conditions for margin maximization. In Conference on Learning Theory (COLT) , 2023a.
+- Spencer Frei, Gal Vardi, Peter L. Bartlett, Nathan Srebro, and Wei Hu. Implicit bias in leaky relu networks trained on high-dimensional data. In International Conference on Learning Representations , 2023b.
+- Andrey Gromov. Grokking modular arithmetic. Preprint, arXiv:2301.02679 , 2023.
+- Trevor Hastie, Andrea Montanari, Saharon Rosset, and Ryan J Tibshirani. Surprises in highdimensional ridgeless least squares interpolation. arXiv preprint arXiv:1903.08560 , 2019.
+
+- Guy Kornowski, Gilad Yehudai, and Ohad Shamir. From tempered to benign overfitting in relu neural networks. Preprint, arXiv:2305.15141 , 2023.
+- Yiwen Kou, Zixiang Chen, Yuanzhou Chen, and Quanquan Gu. Benign overfitting for two-layer relu convolutional networks. In International Conference on Machine Learning (ICML) , 2023.
+- Tengyuan Liang and Alexander Rakhlin. Just interpolate: Kernel 'ridgeless' regression can generalize. Annals of Statistics , 48(3):1329-1347, 2020.
+- Ziming Liu, Ouail Kitouni, Niklas S Nolte, Eric Michaud, Max Tegmark, and Mike Williams. Towards understanding grokking: An effective theory of representation learning. In S. Koyejo, S. Mohamed, A. Agarwal, D. Belgrave, K. Cho, and A. Oh (eds.), Advances in Neural Information Processing Systems , volume 35, pp. 34651-34663. Curran Associates, Inc., 2022. URL https://proceedings.neurips.cc/paper\_files/paper/2022/ file/dfc310e81992d2e4cedc09ac47eff13e-Paper-Conference.pdf .
+- Ziming Liu, Eric J. Michaud, and Max Tegmark. Omnigrok: Grokking beyond algorithmic data. In International Conference on Learning Representations (ICLR) , 2023.
+- Neil Mallinar, James B Simon, Amirhesam Abedsoltan, Parthe Pandit, Mikhail Belkin, and Preetum Nakkiran. Benign, tempered, or catastrophic: A taxonomy of overfitting. In Advances in Neural Information Procesisng Systems (NeurIPS) , 2022.
+- William Merrill, Nikolaos Tsilivis, and Aman Shukla. A tale of two circuits: Grokking as competition of sparse and dense subnetworks. 2023.
+- Neel Nanda, Lawrence Chan, Tom Lieberum, Jess Smith, and Jacob Steinhardt. Progress measures for grokking via mechanistic interpretability. Preprint, arXiv:2301.05217 , 2023.
+- Alethea Power, Yuri Burda, Harri Edwards, Igor Babuschkin, and Vedant Misra. Grokking: Generalization beyond overfitting on small algorithmic datasets. Preprint, arXiv:2201.02177 , 2022.
+- Matus Telgarsky. Feature selection and low test error in shallow low-rotation reLU networks. In International Conference on Learning Representations (ICLR) , 2023.
+- Vimal Thilak, Etai Littwin, Shuangfei Zhai, Omid Saremi, Roni Paiss, and Joshua Susskind. The slingshot mechanism: An empirical study of adaptive optimizers and the grokking phenomenon. 2022.
+- Vikrant Varma, Rohin Shah, Zachary Kenton, J´ anos Kram´ ar, and Ramana Kumar. Explaining grokking through circuit efficiency. Preprint, arXiv:2309.02390 , 2023.
+- Martin J. Wainwright. High-Dimensional Statistics: A Non-Asymptotic Viewpoint . Cambridge Series in Statistical and Probabilistic Mathematics. Cambridge University Press, 2019. doi: 10.1017/9781108627771.
+- Ke Wang and Christos Thrampoulidis. Binary classification of gaussian mixtures: Abundance of support vectors, benign overfitting and regularization. Preprint, arXiv:2011.09148 , 2021.
+- Colin Wei, Jason D. Lee, Qiang Liu, and Tengyu Ma. Regularization matters: Generalization and optimization of neural nets v.s. their induced kernel. In Advances in Neural Information Processing Systems (NeurIPS) , 2019.
+- Xingyu Xu and Yuantao Gu. Benign overfitting of non-smooth neural networks beyond lazy training. In Francisco Ruiz, Jennifer Dy, and Jan-Willem van de Meent (eds.), Proceedings of The 26th International Conference on Artificial Intelligence and Statistics , volume 206 of Proceedings of Machine Learning Research , pp. 11094-11117. PMLR, 25-27 Apr 2023. URL https: //proceedings.mlr.press/v206/xu23k.html .
+- Bojan ˇ Zunkoviˇ c and Enej Ilievski. Grokking phase transitions in learning local rules with gradient descent. arXiv preprint arXiv:2210.15435 , 2022.
+
+## A APPENDIX ORGANIZATION
+
+| A.1   | Additional Notation . . . . . . . . . .          | . . . . . . . . . . . . . . . . . . . . . . . . 12          |
+|-------|----------|----------|
+| A.2   | Properties of the training data . . . . .          | . . . . . . . . . . . . . . . . . . . . . . . . 12          |
+|       | A.2.1 Proof of Lemma 4.1 . . . . .          | . . . . . . . . . . . . . . . . . . . . . . . . 12          |
+|       | A.2.2 Proof of Corollary 4.2 . . . .          | . . . . . . . . . . . . . . . . . . . . . . . . 15          |
+| A.3   | Properties of the initial weights and activation patterns | . . . . . . . . . . . . . . . 15          |
+|       | A.3.1 Proof of Lemma 4.3 . . . . .          | . . . . . . . . . . . . . . . . . . . . . . . . 16          |
+|       | A.3.2 Proof of Lemma 4.4 . . . . .          | . . . . . . . . . . . . . . . . . . . . . . . . 16          |
+|       | A.3.3 Proof of the Probability bound          | of the 'Good run' event . . . . . . . . . . . 22          |
+| A.4   | Trajectory Analysis of the Neurons . .          | . . . . . . . . . . . . . . . . . . . . . . . . 22          |
+|       | A.4.1 Proof of Lemma A.3 . . . . .          | . . . . . . . . . . . . . . . . . . . . . . . . 23          |
+|       | A.4.2 Proof of Lemma A.4 . . . . .          | . . . . . . . . . . . . . . . . . . . . . . . . 24          |
+|       | A.4.3 Proof of Corollary A.5 . . . .          | . . . . . . . . . . . . . . . . . . . . . . . . 25          |
+|       | A.4.4 Proof of Lemma A.6 . . . . .          | . . . . . . . . . . . . . . . . . . . . . . . . 26          |
+|       | A.4.5 Proof of Lemma A.7 . . . . .          | . . . . . . . . . . . . . . . . . . . . . . . . 28          |
+| A.5   | Proof of the Main Theorem . . . . . .          | . . . . . . . . . . . . . . . . . . . . . . . . 31          |
+|       | A.5.1 Proof of Theorem A.8: 1-step          | Overfitting . . . . . . . . . . . . . . . . . . 31          |
+|       | A.5.2 Proof of Theorem          | 4.7: Generalization . . . . . . . . . . . . . . . . . . . . 32 |
+|       | A.5.3 Proof of Theorem A.13: 1-step          | Test Accuracy . . . . . . . . . . . . . . . . 36          |
+| A.6   | Probability Lemmas . . . . . . . . . .          | . . . . . . . . . . . . . . . . . . . . . . . . 41          |
+| A.7   | Experimental details . . . . . . . . .          | . . . . . . . . . . . . . . . . . . . . . . . . 44          |
+| A.8   | Additional Experiments . . . . . . . .          | . . . . . . . . . . . . . . . . . . . . . . . . 45          |
+
+## A.1 ADDITIONAL NOTATION
+
+Denote the c.d.f of standard normal distribution by Φ( · ) and the p.d.f. of standard normal distribution by Φ ′ ( · ) . Denote ¯ Φ( · ) = 1 -Φ( · ) . Denote the Bernoulli distribution which takes 1 with probability p ∈ (0 , 1) by Bern ( p ) . Denote the Binomial distribution with size n and probability p by B ( n, p ) . For a random variable X , denote its variance by Var ( X ) ; and its absolute third central moment by ρ ( X ) .
+
+## A.2 PROPERTIES OF THE TRAINING DATA
+
+## A.2.1 PROOF OF LEMMA 4.1
+
+Lemma 4.1 (Properties of training data) . Suppose Assumptions (A1) and (A2) hold. Let the training data { ( x i , y i ) } n i =1 be sampled i.i.d from P as in Definition 2.1. With probability at least 1 -O ( n -ε ) the training data satisfy properties (B1)-(B4) defined below.
+
+- (B1) For all k ∈ [ n ] , max ν ∈ centers ⟨ x k -¯ x k , ν ⟩ ≤ 10 √ log n ∥ µ ∥ and |∥ x k ∥ 2 -p -∥ µ ∥ 2 | ≤ 10 √ p log n .
+
+̸
+
+- (B2) For each i, k ∈ [ n ] such that i = k , we have |⟨ x i , x k ⟩ - ⟨ ¯ x i , ¯ x k ⟩| ≤ 10 √ p log n.
+- (B3) For ν ∈ centers , we have | c ν + n ν -n/ 4 | ≤ √ εn log n and | n ν -η ( c ν + n ν ) | ≤ √ εηn log n .
+
+<!-- formula-not-decoded -->
+
+Denote by G data the set of training data satisfying conditions (B1)-(B4) . Thus, the result can be stated succinctly as P ( X ∈ G data ) ≥ 1 -O ( n -ε ) .
+
+Proof. Before proceeding with the proof, we recall that centers = {± µ 1 , ± µ 2 } . We first show that (B1) holds with large probability. To this end, fix k ∈ [ n ] . We have by the construction of x k in Section 2.2 that x k ∼ N (¯ x k , I p ) for some ¯ x k ∈ {± µ 1 , ± µ 2 } . Let ξ k = x k -¯ x k . By Lemma A.17, we have
+
+<!-- formula-not-decoded -->
+
+Note that for any fixed non-zero vector ν ∈ R p , we have ⟨ ν, ξ k ⟩ ∼ N (0 , ∥ ν ∥ 2 ) . Therefore, again by Lemma A.17, we have
+
+<!-- formula-not-decoded -->
+
+where the parameter t in both inequality will be chosen later. To show that the first inequality of (B1) holds w.h.p, we show the complement event F k := { max ν ∈ centers ⟨ ξ k , ν ⟩ &gt; t ∥ µ ∥} has low probability. Applying the union bound,
+
+<!-- formula-not-decoded -->
+
+Let δ := n -ε . Picking t = √ 2 log(16 n/δ ) in inequality (A.2) and applying the union bound again, we have
+
+<!-- formula-not-decoded -->
+
+Next, fix t 1 ∈ (0 , 1) and t 2 ≥ 1 arbitrary. To show that the second inequality of (B1) holds w.h.p, we first prove an intermediate step: the complement event E k := {|∥ x k ∥ 2 -p -∥ µ ∥ 2 | &gt; pt 1 +2 ∥ µ ∥ t 2 } has low probability. Towards this, first note that since
+
+<!-- formula-not-decoded -->
+
+we have the alternative characterization of E k as
+
+<!-- formula-not-decoded -->
+
+Next, recall the fact: if X,Y ∈ R are random variables and a, b ∈ R are constants, then
+
+<!-- formula-not-decoded -->
+
+To see this, first note that | X + Y | ≤ | X | + | Y | by the triangle inequality. From this we deduce that P ( | X + Y | &gt; a + b ) ≤ P ( | X | + | Y | &gt; a + b ) . Now, by the union bound, we have
+
+<!-- formula-not-decoded -->
+
+which proves (A.4). Now, to upper bound P ( E k ) , note that
+
+<!-- formula-not-decoded -->
+
+Inequality (A.5) is the crucial intermediate step to proving the second inequality of (B1). It will be convenient to complete the proof of the second inequality of (B1) simultaneously with that of (B2). To this end, we next prove an analogous intermediate step to (B2).
+
+̸
+
+Fix s 1 , s 2 ≥ 1 to be chosen later. Define the event E ij := {|⟨ x i , x j ⟩-⟨ ¯ x i , ¯ x j ⟩| &gt; s 1 √ p +2 t 2 ∥ µ ∥} for each pair i, j ∈ [ n ] such that 1 ≤ i = j ≤ n . Weupper bound P ( E ij ) in similar fashion as in (A.5). To this end, fix i, j ∈ [ n ] such that i = j . Note that the identity ⟨ x i , x j ⟩ = ξ ⊤ i ξ j +¯ x ⊤ i ¯ x j + ξ ⊤ i ¯ x j + ξ ⊤ j ¯ x i
+
+̸
+
+implies that |⟨ x i , x j ⟩ - ⟨ ¯ x i , ¯ x j ⟩| = | ξ ⊤ i ξ j + ξ ⊤ i ¯ x j + ξ ⊤ j ¯ x i | . Now, we claim that
+
+<!-- formula-not-decoded -->
+
+The first inequality simply follows from applying (A.4) twice. Moreover, P ( | ξ ⊤ i ¯ x j | &gt; t 2 ∥ µ ∥ ) and P ( | ξ ⊤ j ¯ x i | &gt; t 2 ∥ µ ∥ ) ≤ exp( -t 2 2 / 2) follows from (A.2). To prove the claim, it remains to prove
+
+<!-- formula-not-decoded -->
+
+To prove the inequality at (A.7), first we get P ( ∥ ξ j ∥ &gt; √ s 2 p ) ≤ 2 exp( -p ( s 2 -1) 2 / 8) by applying (A.1) to upper bounds the second summand of the left-hand side of (A.7). For upper bounding the first summand, first let P ( |⟨ ξ i , ξ j ⟩| &gt; s 1 √ p ∣ ∣ ξ j ) be the conditional probability conditioned on a realization of ξ j (while ξ i remains random). Then by definition
+
+<!-- formula-not-decoded -->
+
+For fixed ξ j such that ∥ ξ j ∥ ≤ √ s 2 p , we have by (A.2) that
+
+<!-- formula-not-decoded -->
+
+Continue to assume fixed ξ j such that ∥ ξ j ∥ ≤ √ s 2 p , note that s 1 √ p/ ∥ ξ j ∥ ≥ s 1 √ p/ √ s 2 p = s 1 / √ s 2 implies √ √
+
+<!-- formula-not-decoded -->
+
+Hence, P ( |⟨ ξ i , ξ j ⟩| &gt; s 1 √ p ∣ ∣ ξ j ) ≤ exp( -s 2 1 / 2 s 2 ) . Applying E ξ j [ · ∣ ∣ ∥ ξ j ∥ ≤ √ s 2 p ] to both side of the preceding inequality, we get P ( |⟨ ξ i , ξ j ⟩| &gt; s 1 √ p ∣ ∣ ∥ ξ j ∥ ≤ √ s 2 p ) ≤ exp( -s 2 1 / 2 s 2 ) which upper bounds the first summand of the left-hand side of (A.7). We now choose the values for t 1 = √ 8 log(16 n/δ ) /p , t 2 = √ 2 log(16 n 2 /δ ) , s 1 = 2 √ log(8 n 2 /δ ) , and s 2 = 1 + √ 8 log(16 n 2 /δ ) /p. Recall that δ = n -ε and n is sufficiently large, then we have
+
+<!-- formula-not-decoded -->
+
+by Assumptions (A1) and (A2). Combining (A.5) and (A.6) then applying the union bound, we have
+
+̸
+
+<!-- formula-not-decoded -->
+
+̸
+
+Moreover, plugging the above values of t 1 , t 2 and s 1 into the definition of E k and E ij , we see that (B1) and (B2) are satisfied since they contain the complement of the event in (A.9).
+
+Next, show that (B3) holds with large probability. We prove the inequality involving | c ν + n ν -n/ 4 | portion of (B3). Proofs for the rest of the inequalities in (B3) follow analogously using the same technique below. Recall from the data generation model, for each k ∈ [ n ] , ¯ x k is sampled i.i.d ∼ Unif {± µ 1 , ± µ 2 } . Define the following indicator random variable:
+
+<!-- formula-not-decoded -->
+
+Then we have ∑ ν I µ ( k ) = 1 for each k , and E [ I ν ( k )] = n/ 4 for each ν . Applying Hoeffding's inequality (Lemma A.18), we obtain
+
+<!-- formula-not-decoded -->
+
+Applying the union bound, we have
+
+<!-- formula-not-decoded -->
+
+Thus we can bound the above tail probability by O ( δ ) by letting t = √ log(1 /δ ) / 2 , and the upper bound t √ n ≤ √ n log(1 /δ ) = √ nε log( n ) .
+
+Next, show that (B4) holds with large probability. We prove the inequality involving | c ν + n ν -c -ν -n -ν | portion of (B4). Proofs for the rest of the inequalities in (B4) follow analogously using the same technique below. Note that for each k ,
+
+<!-- formula-not-decoded -->
+
+It yields that
+
+<!-- formula-not-decoded -->
+
+Applying the Berry-Esseen theorem (Lemma A.19), we have
+
+<!-- formula-not-decoded -->
+
+Let t = n -ε . By Φ( t ) ≤ 1 / 2 + Φ ′ (0) t , we have
+
+<!-- formula-not-decoded -->
+
+Combining (A.3), (A.9)-(A.11), we prove that conditions (B1)-(B4) hold with probability at least 1 -O ( δ ) over the randomness of the training data. As a consequence of (B1), we have
+
+<!-- formula-not-decoded -->
+
+by Assumption (A1) and (A2).
+
+## A.2.2 PROOF OF COROLLARY 4.2
+
+̸
+
+Corollary 4.2 (Near-orthogonality of training data) . Suppose Assumptions (A1), (A2), and Conditions (B1), (B2) from Lemma 4.1 all hold. Then for all 1 ≤ i = k ≤ n ,
+
+<!-- formula-not-decoded -->
+
+Proof. By Lemma 4.1, we have that under (B1) and (B2), when i = j ,
+
+̸
+
+<!-- formula-not-decoded -->
+
+for sufficiently large p . Here the second inequality comes from Assumption (A1); and the last inequality comes from Assumption (A2).
+
+## A.3 PROPERTIES OF THE INITIAL WEIGHTS AND ACTIVATION PATTERNS
+
+We begin with additional notations that is used for the proofs of Lemmas 4.3 and 4.4. Following the notations in Xu &amp; Gu (2023), we simplify the notation of J Pos and J Neg defined in Section 4 as
+
+<!-- formula-not-decoded -->
+
+Active neurons/samples . We denote the set A ( t ) of all sample-neuron pairs of indices ( i, j ) ∈ [ n ] × [ m ] such that the neuron j is active with respect to the sample x i at time t . In other words, we define
+
+<!-- formula-not-decoded -->
+
+Next, for a fixed time index t ≥ 0 , define for each sample index i ∈ [ n ] the subset A i, ( t ) ⊆ [ m ] :
+
+<!-- formula-not-decoded -->
+
+Likewise, for each neuron index j ∈ [ m ] , define the subset A ( t ) j ⊆ [ n ] :
+
+<!-- formula-not-decoded -->
+
+Note that A i, ( t ) (resp. A ( t ) j ) is the set of neurons (resp. samples) that is active w.r.t sample i (resp. neuron j ) at time t . Next, we define the set of positive (resp. negative) neurons that is active w.r.t sample i at time t :
+
+<!-- formula-not-decoded -->
+
+Likewise, we define the set of clean (resp. noisy) samples that is active w.r.t neuron j at time t :
+
+<!-- formula-not-decoded -->
+
+Note that the above definitions in (A.13) are equivalent to that of (4.1) from the main text. Finally, define the notational shorthand n ± ν := n ν + n -ν .
+
+( ν, κ ) -aligned neurons . For each ν ∈ centers and parameter κ ∈ [0 , 1 2 ) , we denote the sets of neuron indices j ∈ [ n ] of corresponding to ( ν, κ ) -aligned neurons 3 by:
+
+<!-- formula-not-decoded -->
+
+In other words, we have the following identity between sets of neuron indices:
+
+<!-- formula-not-decoded -->
+
+Finally, we define the subsets of positive (resp. negative) ( ν, κ ) -aligned neurons:
+
+<!-- formula-not-decoded -->
+
+## A.3.1 PROOF OF LEMMA 4.3
+
+Lemma 4.3 (Properties of the random weight initialization) . Suppose Assumptions (A1), (A2) and (A6) hold. All conditions below simultaneously hold with probability at least 1 -O ( n -ε ) over the random initialization:
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+The result can be stated equivalently as follows: Denote the set of W (0) satisfying condition (C1) by G W . Denote the set of a = ( a j ) j m =1 satisfying condition (C2) by G A . Then P ( a ∈ G A , W (0) ∈ G W ) ≥ 1 -O ( n -ε ) .
+
+Proof. Recall earlier for simplicity, we defined for simplicity J P = J Pos and J N = J Neg . Let δ = n -ε . Then (C1) is proved to hold with probability 1 -O ( δ ) in the Lemma 4.2 of Frei et al. (2022b). For (C2), since |J P | and |J N | both follow the binomial distribution 4 B ( m, 1 / 2) , it suffices to show that P ( |J P | ≥ m/ 3) ≥ 1 -δ . Applying Hoeffding's inequality (Lemma A.18), we have
+
+<!-- formula-not-decoded -->
+
+where the last inequality comes from Assumption (A6).
+
+## A.3.2 PROOF OF LEMMA 4.4
+
+Lemma 4.4 (Properties of the interaction between training data and initial weights) . Suppose Assumptions (A1)-(A3) and (A6) hold. Given a ∈ G A (defined in Lemma 4.3) and X ∈ G data (defined in Lemma 4.1), the followings hold with probability at least 1 -O ( n -ε ) over the random initialization W (0) :
+
+3 See (4.2) in the main text for the definition of ( ν, κ ) -aligned neurons
+
+4 See Section A.1 for details on the notation
+
+- (D1) For all i ∈ [ n ] , the sample x i activates a large proportion of positive and negative neurons, i.e., |{ j ∈ J Pos : ⟨ w (0) j , x i ⟩ &gt; 0 }| ≥ m/ 7 and |{ j ∈ J Neg : ⟨ w (0) j , x i ⟩ &gt; 0 }| ≥ m/ 7 both hold.
+- (D2) For all ν ∈ centers and κ ∈ [0 , 1 2 ) , both |{ j ∈ J Pos : j is ( ν, κ ) -aligned }| ≥ mn -10 ε , and |{ j ∈ J Neg : j is ( ν, κ ) -aligned }| ≥ mn -10 ε .
+- (D3) For all ν ∈ centers , we have ∣ ∣ { j ∈ J Pos : j is ( ± ν, 20 ε ) -aligned } ∣ ∣ ≥ (1 -10 n -20 ε ) |J Pos | . Moreover, the same statement holds if ' J Pos ' is replaced with ' J Neg ' everywhere.
+- (D4) For all ν ∈ centers and κ ∈ [0 , 1 2 ) , let J κ ν, Pos := { j ∈ J Pos : j is ( ν, κ ) -aligned } . Then ∑ j ∈J κ ν, Pos ( c ν -n ν -d (0) -ν,j ) ≥ n 10 |J κ ν, Pos | . Moreover, the same statement holds if ' J Pos ' is replaced with ' J Neg ' everywhere.
+
+Before we proceed with the proof of Lemma 4.4, we consider the following restatements of (D1) through (D4):
+
+(D'1) For each i ∈ [ n ] , x i activates a constant fraction of neurons initially, i.e. for each i ∈ [ n ] the sets J i, (0) P and J i, (0) N defined at (A.12) satisfy
+
+<!-- formula-not-decoded -->
+
+- (D'2) For ν ∈ centers and κ ∈ [0 , 1 / 2) , we have min {|J κ ν, P | , |J κ ν, N |} ≥ mn -10 ε .
+- (D'3) For ν ∈ centers , we have ∣ ∣ J 20 ε ν, P ∪ J 20 ε -ν, P ∣ ∣ ≥ (1 -10 n -20 ε ) |J P | and ∣ ∣ J 20 ε ν, N ∪ J 20 ε -ν, N ∣ ∣ ≥ (1 -10 n -20 ε ) |J N | .
+
+(D'4) For ν ∈ centers and κ ∈ [0 , 1 2 ) , we have ∑ j ∈J ( c ν -d (0) -ν,j ) ≥ n 10 |J | , where J ∈ {J κ ν, P , J κ ν, N } .
+
+Unwinding the definitions, we note that the (D'1) through (D'4) are equivalent to the (D1) through (D4) of Lemma 4.4
+
+Proof. Let δ = n -ε . Throughout this proof, we implicitly condition on the fixed { a j } ∈ G A and { x i } ∈ G data, i.e., when writing a probability and expectation we write P ( · ) and E [ · ] to denote P ( · |{ a j } , { x i } ) and E [ · |{ a j } , { x i } ] respectively.
+
+Proof of condition (D1): Define the following events for each i ∈ [ n ] :
+
+<!-- formula-not-decoded -->
+
+We first show that ∩ n i =1 ( P i ∩ N i ) occurs with large probability. To this end, applying the union bound, we have
+
+<!-- formula-not-decoded -->
+
+Note that P i and N i are defined completely analogously corresponding to when a j &gt; 0 and a j &lt; 0 , respectively. Thus, to prove (D1), it suffices to show that P ( P c i ) ≤ δ/ (4 n ) for each i , or equivalently,
+
+<!-- formula-not-decoded -->
+
+holds for each i ∈ [ n ] , where U j := I ( ⟨ w (0) j , x i ⟩ &gt; 0) . Note that given x i and J P , { U j } j ∈J P are i.i.d Bernoulli random variables with mean 1 / 2 , thus we have
+
+<!-- formula-not-decoded -->
+
+where the first inequality uses |J P | ≥ m/ 3 ; the second inequality comes from Hoeffding's inequality (Lemma A.18); and the third inequality uses Assumption (A6). Now we have proved that (D1) holds with probability at least 1 -δ .
+
+Proof of condition (D2): Without loss of generality, we only prove the results for J κ ν, P . Note that J κ 1 ν, P ⊆ J κ 2 ν, P for κ 1 &lt; κ 2 . Thus we only consider the case κ = 0 . It suffices to show that for each j ∈ [ m ] ,
+
+<!-- formula-not-decoded -->
+
+Suppose (A.15) holds for any ν ∈ {± µ 1 , ± µ 2 } . Applying the inequality P ( A ∩ B ) ≥ 1 -P ( A c ) -P ( B c ) , we have
+
+<!-- formula-not-decoded -->
+
+Then we have
+
+<!-- formula-not-decoded -->
+
+where the last inequality uses min {|J P | , |J N |} ≥ m/ 3 , which comes from the definition of G A . Note that given { a j } and { x i } , |J ν, P | is the summation of i.i.d Bernoulli random variables. Applying Hoeffding's inequality (Lemma A.18), we obtain
+
+<!-- formula-not-decoded -->
+
+where the last inequality uses |J P | = m - |J N | ≤ 2 m/ 3 , 20 ε ≤ 0 . 01 , and Assumption (A6). Applying the union bound, we have
+
+<!-- formula-not-decoded -->
+
+Thus it remains to show (A.15). Without loss of generality, we will only prove (A.15) for ν = + µ 1 , which can be easily extended to other ν 's. Recall that X = [ x 1 , . . . , x n ] ⊤ is the given training data. Let V = Xw (0) j , then V ∼ N (0 , XX ⊤ ) . Let Z = [ z 1 , · · · , z n ] ⊤ , z i = v i / ∥ x i ∥ , i ∈ [ n ] . Denote Σ = Cov ( Z ) . Then Z ∼ N (0 , Σ) . By Corollary 4.2, we have
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+By the definition of G data and (B3) in Lemma 4.1, we have
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+for sufficiently large n . Note that equivalently, we can rewrite D (0) + µ 1 ,j as
+
+<!-- formula-not-decoded -->
+
+Since we want to give a lower bound for D (0) + µ 1 ,j , below we only consider the case when |A 1 | &lt; |A 2 | . With the new expression of D (0) + µ 1 ,j , we have
+
+<!-- formula-not-decoded -->
+
+̸
+
+for 1 ≤ i = j ≤ n. Denote
+
+By Lemma A.16, we have
+
+<!-- formula-not-decoded -->
+
+where γ = 1 / 2 -4 / ( Cn ) . Let Z ′ = [ z ′ 1 , · · · , z ′ n ] ⊤ ∼ N (0 , I n ) . Denote ∆ j := ∑ i ∈A 1 I ( z ′ i &gt; 0) -∑ i ∈A 2 I ( z ′ i &gt; 0) , and n ∆ = |A 1 | + |A 2 | . Then we have ∆ j ∼ B ( |A 1 | , 1 / 2) -B ( |A 2 | , 1 / 2) , E [∆ j ] = ( |A 1 | - |A 2 | ) / 2 , and
+
+<!-- formula-not-decoded -->
+
+by (A.16) and (A.17). Here the last inequality comes from Assumption (A3). Combining (A.19) and (A.20), we have
+
+<!-- formula-not-decoded -->
+
+where the second equation uses the decomposition of P (∆ j &gt; √ n ) ; the second inequality uses |A 1 | + |A 2 | ≤ n ; and the last inequality uses f ( n ) = (1 -8 / ( Cn )) n is a monotonically increasing function for n ≥ 1 . Note that
+
+<!-- formula-not-decoded -->
+
+where the first inequality uses Berry-Esseen theorem (Lemma A.19), and the second inequality is from (A.17) and (A.21). If √ ε log( n ) ≤ √ 3 , then ¯ Φ(2( √ 3 + √ ε log( n ))) -O (1 / √ n ) = Ω(1) , which gives a constant lower bound for P (∆ j &gt; √ n ) . If √ ε log( n ) &gt; √ 3 , we have
+
+<!-- formula-not-decoded -->
+
+for sufficiently large n. Here the second inequality uses ¯ Φ( x ) ≥ Φ ′ ( x ) / (2 x ) for x ≥ 1 . Combining both situations, we have
+
+<!-- formula-not-decoded -->
+
+for sufficiently large n . Combining (A.22) and (A.23), we have
+
+<!-- formula-not-decoded -->
+
+for C ≥ 16 . It remains to prove
+
+<!-- formula-not-decoded -->
+
+Without loss of generality, below we prove it for µ = + µ 1 . According to condition (B3) in Lemma 4.1, we have
+
+<!-- formula-not-decoded -->
+
+for C ≥ 150 and sufficiently large n . Here the second inequality is from Assumption (A3). Thus it suffices to prove P ( d (0) + µ 1 ,j ≥ n/ 6) ≤ n -10 ε . Note that
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+Denote
+
+Following the same proof procedure for the anti-concentration result of D (0) + µ 1 ,j , we have
+
+<!-- formula-not-decoded -->
+
+where γ 2 = 1 / 2 + 4 / ( Cn ) . According to condition (B3) in Lemma 4.1, we have c + µ 1 -n + µ 1 ≤ (1 / 4 -2 η ) n +2 √ nε log( n ) . It yields that
+
+<!-- formula-not-decoded -->
+
+Applying Hoeffding's inequality (Lemma A.18), we have
+
+<!-- formula-not-decoded -->
+
+Combining the inequalities above, we have
+
+<!-- formula-not-decoded -->
+
+where the equation uses (1 + 8 / ( Cn )) c + µ 1 + n + µ 1 ≤ (1 + 8 / ( Cn )) n ≤ exp(8 /C ) . Now we have completed the proof for (D2).
+
+Proof of condition (D3): Without loss of generality, we only prove the results for J 20 ε + µ 1 , P ∪J 20 ε -µ 1 , P . By Berry-Essen theorem, we have
+
+<!-- formula-not-decoded -->
+
+where the first inequality uses Φ( b ) -Φ( a ) ≤ 2(Φ(( b -a ) / 2) -Φ(0)) , b ≥ a ; the second inequality uses Φ( x ) -Φ(0) ≤ Φ ′ (0) x, x ≥ 0 and 20 ε &lt; 1 / 2 . It yields that
+
+<!-- formula-not-decoded -->
+
+where the first inequality is from Lemma A.15. Combined with (A.24) and (A.25), we have
+
+<!-- formula-not-decoded -->
+
+where the second inequality uses D (0) ν,j = -D (0) -ν,j and P ( ∩ n i =1 A i ) = 1 -P ( ∪ n i =1 A c i ) ≥ 1 -∑ n i =1 P ( A c i ) . Note that given { a j } and { x i } , |J ν, P ∪J -ν, P | is the summation of i.i.d Bernoulli random variables with expectation larger than 1 -9 n -20 ε . Applying Hoeffding's inequality (Lemma A.18),
+
+we obtain
+
+<!-- formula-not-decoded -->
+
+where the first inequality uses E [ |J 20 ε + µ 1 , P ∪ J -µ 1 , P | ] ≥ |J 20 ε P | (1 -9 n -20 ε ) and the last inequality is from Assumption (A6) and 40 ε &lt; 0 . 01 .
+
+Proof of condition (D4): Lastly we show that (D4) also holds with probability at least 1 -O ( n -ε ) . Without loss of generality, we only prove it for J κ + µ 1 , P . Referring back to the definition of J κ + µ 1 , P in equation (A.14), it is crucial to note that it solely imposes upper bounds on d (0) -µ 1 ,j . Consequently, the average of d (0) -µ 1 ,j in J κ + µ 1 , P is no more than the average of d (0) -µ 1 ,j in J P , which imposes no constraints on d (0) -µ 1 ,j . Armed with this understanding, when |J κ + µ 1 , P | &gt; 0 , we have that with probability 1 ,
+
+<!-- formula-not-decoded -->
+
+Thus it suffices to show that
+
+<!-- formula-not-decoded -->
+
+with probability at least 1 -O ( δ ) . Note that given the training data X , { d (0) -µ 1 ,j } j m =1 are i.i.d random variables with E [ d (0) -µ 1 ,j ] = ( c -µ 1 -n -µ 1 ) / 2 , which comes from the symmetry of the distribution of w (0) j . Then we have
+
+<!-- formula-not-decoded -->
+
+Here the first inequality uses (B3) in Lemma 4.1 and the second inequality uses Assumption (A3). Applying Hoeffding's inequality (Lemma A.18), we obtain
+
+<!-- formula-not-decoded -->
+
+where the first inequality uses (A.27), the second inequality uses Hoeffding's inequality (Lemma A.18) and the bounds of d (0) -µ 1 ,j , i.e. -n -µ 1 ≤ d (0) -µ 1 ,j ≤ c -µ 1 , and the last inequality uses Assumption (A6). It proves (A.26).
+
+Remark A.1. In the proof of (D2), note that when Σ = I n , z i are independent with each other. Then (A.15) can be proved by applying Hoeffding's inequality (Lemma A.18). In our setting, Σ is close to the identity matrix, which means that { z i } are weakly dependent and inspires us to prove similar results.
+
+## A.3.3 PROOF OF THE PROBABILITY BOUND OF THE 'GOOD RUN' EVENT
+
+Combining the probability lower bound parts of Lemma 4.1,4.3 and 4.4, we have
+
+<!-- formula-not-decoded -->
+
+as desired.
+
+## A.4 TRAJECTORY ANALYSIS OF THE NEURONS
+
+Let t ≥ 0 be an arbitrary step. Denote z ( t ) i := y i f ( x i ; W ( t ) ) , and h ( t ) i := g ( t ) i -1 / 2 . Then we can decompose (2.2) as
+
+<!-- formula-not-decoded -->
+
+Remark A.2. When | z ( t ) i | is sufficiently small, we can use 1 / 2 as an approximation for the negative derivative of the logistic loss by first-order Taylor's expansion and we will show that the training dynamics is nearly the same in the first O ( p ) steps.
+
+LemmaA.3. Suppose that Assumptions (A1)-(A6) hold. Under a good run, for 0 ≤ t ≤ 1 / ( √ npα ) -2 , we have max i ∈ [ n ] | h ( t ) i | ≤ 2 /n 3 / 2 .
+
+LemmaA.4. Suppose that Assumptions (A1)-(A6) hold. Under a good run, for 0 ≤ t ≤ 1 / ( √ npα ) -2 , we have that for each k ∈ [ n ] ,
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+where C n := 10 √ log( n ) , ¯ x k ∈ centers is defined as the cluster mean for sample ( x k , y k ) , and y ν is defined as the clean label for cluster centered at ν (i.e. y ν = 1 for ν ∈ {± µ 1 } , y ν = -1 for ν ∈ {± µ 2 } ).
+
+Taking a closer look at (A.29), we see that if a j y k &gt; 0 , and x k activates neuron w j at time s , then x k will activate neuron w ( t ) j for any t ∈ [ s, 1 / ( √ npα ) -2] . Moreover, if a j y k &lt; 0 , and x k activates neuron w j at time s , then x k will not activate neuron w j at time s +1 , which implies that there is an upper bound for the inner product ⟨ w ( t ) j , x k ⟩ . These observations are stated as the corollary below:
+
+Corollary A.5. Suppose that Assumptions (A1)-(A6) hold. Under a good run, for any pair ( j, k ) ∈ [ m ] × [ n ] , the following is true:
+
+- (E1) When a j y k &gt; 0 , if there exists some 0 ≤ s &lt; 1 / ( √ npα ) -2 such that ⟨ w ( s ) j , x k ⟩ &gt; 0 , then for any s ≤ t ≤ 1 / ( √ npα ) -2 , we have ⟨ w ( t ) j , x k ⟩ &gt; 0 .
+- (E2) When a j y k &lt; 0 , for any 0 ≤ t ≤ 1 / ( √ npα ) -2 , we have that ⟨ w ( t ) j , x k ⟩ ≤ α √ m ∥ µ ∥ 2 .
+- (E3) When a j y k &lt; 0 , for any 0 ≤ t ≤ 1 / ( √ npα ) -3 , we have that ⟨ w ( t ) j , x k ⟩ &gt; 0 implies ⟨ w ( t +1) j , x k ⟩ &lt; 0 .
+
+## A.4.1 PROOF OF LEMMA A.3
+
+LemmaA.3. Suppose that Assumptions (A1)-(A6) hold. Under a good run, for 0 ≤ t ≤ 1 / ( √ npα ) -2 , we have max i ∈ [ n ] | h ( t ) i | ≤ 2 /n 3 / 2 .
+
+Proof. It suffices to show that for 0 ≤ t ≤ 1 / ( √ npα ) -2 ,
+
+<!-- formula-not-decoded -->
+
+We prove the result by an induction on t . Denote
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+When t = 0 , we have by Lemma A.10, Assumption (A2) and (A5). Thus P (0) holds. Suppose P ( t ) holds and t ≤ 1 / ( √ npα ) -3 , then we have
+
+<!-- formula-not-decoded -->
+
+which yields that max i ∈ [ n ] g ( τ ) i ≤ 1 . Further we have that for each pair ( j, k ) ∈ [ m ] × [ n ] ,
+
+<!-- formula-not-decoded -->
+
+where the first inequality uses ∥ x i ∥ 2 ≤ 2 p , |⟨ x i , x j ⟩| ≤ 2 µ 2 , which comes from Lemma 4.1, and the second inequality uses Assumption (A2). It yields that for each pair ( j, k ) ∈ [ m ] × [ n ] ,
+
+<!-- formula-not-decoded -->
+
+where the last inequality uses Lemma 4.3 and Assumption (A5). Then we have that for each k ∈ [ n ] ,
+
+<!-- formula-not-decoded -->
+
+By | 1 / (1 + exp( z )) -1 / 2 | ≤ | z | / 2 , ∀ z , we have for each i ∈ [ n ] ,
+
+<!-- formula-not-decoded -->
+
+Thus P ( t +1) is proved.
+
+As a consequence of Lemma A.3, we have g ( t ) i ∈ [1 / 4 , 1] for 0 ≤ t ≤ 1 / ( √ npα ) -2 .
+
+## A.4.2 PROOF OF LEMMA A.4
+
+LemmaA.4. Suppose that Assumptions (A1)-(A6) hold. Under a good run, for 0 ≤ t ≤ 1 / ( √ npα ) -2 , we have that for each k ∈ [ n ] ,
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+where C n := 10 √ log( n ) , ¯ x k ∈ centers is defined as the cluster mean for sample ( x k , y k ) , and y ν is defined as the clean label for cluster centered at ν (i.e. y ν = 1 for ν ∈ {± µ 1 } , y ν = -1 for ν ∈ {± µ 2 } ).
+
+Proof. First we have
+
+<!-- formula-not-decoded -->
+
+̸
+
+where the first inequality uses max i h ( t ) i ≤ 2 n -3 / 2 , which is from Lemma A.3; the third inequality uses ∥ x k ∥ 2 ≤ 2 p, |⟨ x i , x k ⟩| ≤ 2 ∥ µ ∥ 2 , which is induced by Lemma 4.1. Next we have the following decomposition:
+
+̸
+
+<!-- formula-not-decoded -->
+
+̸
+
+where the second equation uses the definition of D ( t ) ν,j . Recall that C n = 10 √ log( n ) . Combining with results in Lemma 4.1, (A.32) yields that
+
+<!-- formula-not-decoded -->
+
+where the first inequality uses (B1) and (B2) in Lemma 4.1 and the second inequality uses Assumption (A2). Recall the decomposition (A.28) of the gradient descent update, we have
+
+<!-- formula-not-decoded -->
+
+̸
+
+Then combining (A.31), (A.33), and (A.34), we have
+
+<!-- formula-not-decoded -->
+
+where the second inequality uses Assumption (A1) and the last inequality holds for large enough n
+
+Now we turn to prove (A.30). Similar to (A.34), we have a decomposition for ⟨ w ( t +1) j -w ( t ) j , ν ⟩
+
+<!-- formula-not-decoded -->
+
+Similar to (A.31), we have
+
+<!-- formula-not-decoded -->
+
+by Lemma A.3 and |⟨ x i , ν ⟩| ≤ 2 ∥ µ ∥ 2 , which induced by (B1) in Lemma 4.1. Similar to (A.33), we have
+
+<!-- formula-not-decoded -->
+
+by (B1) in Lemma 4.1. Combining the inequalities above, we have
+
+<!-- formula-not-decoded -->
+
+for large enough n . Here the last inequality uses
+
+<!-- formula-not-decoded -->
+
+which comes from Assumptions (A1)-(A2).
+
+## A.4.3 PROOF OF COROLLARY A.5
+
+Corollary A.5. Suppose that Assumptions (A1)-(A6) hold. Under a good run, for any pair ( j, k ) ∈ [ m ] × [ n ] , the following is true:
+
+- (E1) When a j y k &gt; 0 , if there exists some 0 ≤ s &lt; 1 / ( √ npα ) -2 such that ⟨ w ( s ) j , x k ⟩ &gt; 0 , then for any s ≤ t ≤ 1 / ( √ npα ) -2 , we have ⟨ w ( t ) j , x k ⟩ &gt; 0 .
+- (E2) When a j y k &lt; 0 , for any 0 ≤ t ≤ 1 / ( √ npα ) -2 , we have that ⟨ w ( t ) j , x k ⟩ ≤ α √ m ∥ µ ∥ 2 .
+- (E3) When a j y k &lt; 0 , for any 0 ≤ t ≤ 1 / ( √ npα ) -3 , we have that ⟨ w ( t ) j , x k ⟩ &gt; 0 implies ⟨ w ( t +1) j , x k ⟩ &lt; 0 .
+
+Proof. (E1): It suffices to show the result holds for t = s +1 , then by induction we can prove it for all s ≤ t ≤ 1 / ( √ npα ) -2 . Note that a j y k = 1 / √ m and ⟨ w ( s ) j , x k ⟩ &gt; 0 , by (A.29), we have
+
+<!-- formula-not-decoded -->
+
+. :
+
+where the second inequality uses Assumption (A2).
+
+(E2): We prove (E2) by induction. Denote
+
+<!-- formula-not-decoded -->
+
+When t = 0 , by the definition of a good run, we have
+
+<!-- formula-not-decoded -->
+
+where the second inequality uses Lemma 4.1; the third inequality uses Lemma 4.3; and the last inequality is from Assumption (A5). Thus Q (0) holds. Suppose Q ( t ) holds and t ≤ 1 / ( √ npα ) -3 . If ⟨ w ( t ) j , x k ⟩ &lt; 0 , we have
+
+<!-- formula-not-decoded -->
+
+where the second inequality uses (A.29) and ϕ ′ ( ⟨ w ( t ) j , x k ⟩ ) = 0 ; and the third inequality uses D ( t ) ν,j ≤ n and n is large enough. If ⟨ w ( t ) j , x k ⟩ &gt; 0 , we have
+
+<!-- formula-not-decoded -->
+
+where the first inequality uses (A.29) and ϕ ′ ( ⟨ w ( t ) j , x k ⟩ ) = 1 ; and the second inequality uses Assumption (A2). Combined with the inductive hypothesis, we have
+
+<!-- formula-not-decoded -->
+
+by Assumption (A2). Thus Q ( t +1) holds. And (E3) is also proved by the last inequality.
+
+## A.4.4 PROOF OF LEMMA A.6
+
+Since the analysis on one cluster can be similarly replicated on other clusters, below we will focus on analyzing the cluster centered at + µ 1 . Given the training set, D (0) + µ 1 ,j is a function of the random initialization w (0) j . D (0) + µ 1 ,j plays an important role in determining the direction that w ( t ) j , t ≥ 1 aligns with and the sign of the inner product ⟨ w ( t ) j , x k ⟩ . For ¯ x k ∈ {± µ 1 } , y ¯ x k = 1 . Then for each t ≤ 1 / ( √ npα ) -2 , (A.29) is simplified to
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+Here C n = 10 √ log( n ) is defined in Lemma A.4. We will elaborate on the outcomes for neurons with a j &gt; 0 and a j &lt; 0 separately in the following lemmas.
+
+Lemma A.6. Suppose that Assumptions (A1)-(A6) hold. Under a good run, we have that for any j ∈ J 20 ε + µ 1 , P (or equivalently, for any neuron j ∈ J Pos that is ( µ 1 , 20 ε ) -aligned) ), the followings hold for 1 ≤ t ≤ 1 / ( √ npα ) -2 :
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+Proof. Given j ∈ J 20 ε + µ 1 , P , when t = 0 , for x k ∈ C (0) + µ 1 ,j , we have a j y k &gt; 0 . Thus by Corollary A.5, we have √
+
+<!-- formula-not-decoded -->
+
+Similarly we have that for x k ∈ C (0) -µ 1 ,j ,
+
+<!-- formula-not-decoded -->
+
+and for x k ∈ N (0) -µ 1 ,j , x k / ∈ N (1) -µ 1 ,j since a j y k &lt; 0 .
+
+Next for x k ∈ C + µ 1 \C (0) + µ 1 ,j , we have
+
+<!-- formula-not-decoded -->
+
+where the first inequality is from (A.39); the second inequality uses D (0) + µ 1 ,j &gt; n 1 / 2 -20 ε , which is from j ∈ J 20 ε + µ 1 , P ; and the last inequality uses 40 ε &lt; 0 . 01 . It yields that
+
+<!-- formula-not-decoded -->
+
+where the second inequality uses (A.37). Thus we have
+
+<!-- formula-not-decoded -->
+
+Combined with (A.40), we obtain C (1) + µ 1 ,j = C + µ 1 . Then by Corollary A.5, we have
+
+<!-- formula-not-decoded -->
+
+For x k ∈ ( C -µ 1 \C (0) -µ 1 ,j ) ∪ ( N -µ 1 \N (0) -µ 1 ,j ) , Following similar analysis of (A.43), we have
+
+<!-- formula-not-decoded -->
+
+Thus we have C -µ 1 \C (0) -µ 1 ,j / ∈ C (1) -µ 1 ,j , and N -µ 1 \N (0) -µ 1 ,j / ∈ N (1) -µ 1 ,j . Combined with (A.41) and N (0) -µ 1 ,j / ∈ N (1) -µ 1 ,j , we obtain
+
+<!-- formula-not-decoded -->
+
+It yields that
+
+<!-- formula-not-decoded -->
+
+where the last inequality uses d (0) + µ 1 ,j &lt; min { c + µ 1 , c -µ 1 } -2 n ± µ 1 - √ n and
+
+<!-- formula-not-decoded -->
+
+Thus (F1) holds for t = 1 . Then (F1) is proved by replicating the same analysis and employing induction.
+
+For the inner product with the cluster mean + µ 1 , by (A.30) we have
+
+<!-- formula-not-decoded -->
+
+where the last inequality uses D ( t ) + µ 1 ,j &gt; 0 .
+
+## A.4.5 PROOF OF LEMMA A.7
+
+Lemma A.7. Suppose that Assumptions (A1)-(A6) hold. Under a good run, for any j ∈ J 20 ε + µ 1 , N ∪ J 20 ε -µ 1 , N (or equivalently, for any neuron j ∈ J Neg that is ( ± µ 1 , 20 ε ) -aligned), the followings hold for 2 ≤ t ≤ 1 / ( √ npα ) -2 .
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+where ∆ µ 1 := | n + µ 1 -n -µ 1 | + √ n .
+
+Proof. For a given ν ∈ {± µ 1 } , suppose j ∈ J 20 ε ν, N . Then we have
+
+<!-- formula-not-decoded -->
+
+according to the definition (A.14). Note that we study the same data as in Lemma A.6 and only sgn( a j ) is flipped in the trajectory analysis compared to the setting in Lemma A.6, our analysis in the first two iterations follows similar procedures in Lemma A.6. For x k ∈ C (0) ν,j ∪C (0) -ν,j , a j y k &lt; 0 , by Corollary A.5, we have
+
+<!-- formula-not-decoded -->
+
+For x k ∈ N (0) ν,j ∪ N (0) -ν,j , a j y k &gt; 0 , by Corollary A.5, we have
+
+<!-- formula-not-decoded -->
+
+for any t ≤ 1 / ( √ npα ) -2 . For x k ∈ ( C ν \C (0) ν,j ) ∪ ( N ν \N (0) ν,j ) , similar to (A.42), we have
+
+<!-- formula-not-decoded -->
+
+then similar to (A.43), we have
+
+<!-- formula-not-decoded -->
+
+For x k ∈ ( C -ν \C (0) -ν,j ) ∪ ( N -ν \N (0) -ν,j ) , similar to (A.44), we have
+
+<!-- formula-not-decoded -->
+
+Combining (A.48)-(A.51), we have
+
+<!-- formula-not-decoded -->
+
+Thus by the definition of D (1) ν,j , we have
+
+<!-- formula-not-decoded -->
+
+It further yields that
+
+<!-- formula-not-decoded -->
+
+where the first inequality uses (A.53) and the definition of D (0) ν,j , and the third inequality uses (A.47).
+
+After the second iteration, for x k ∈ N ν \N (1) ν,j , ⟨ w (0) j , x k ⟩ &lt; 0 , ⟨ w (1) j , x k ⟩ &lt; 0 . Then we have
+
+<!-- formula-not-decoded -->
+
+where the first inequality uses (A.39), and the second inequality uses D (1) ν,j + D (0) ν,j &lt; - √ n . It further yields that
+
+<!-- formula-not-decoded -->
+
+For x k ∈ N (1) ν,j ∪ N -ν , note that a j y k &gt; 0 . Then by Corollary A.5, we have ⟨ w (2) j , x k ⟩ &gt; 0 . Combined with (A.54), we obtain N (2) ν,j = N ν , N (2) -ν,j = N -ν . Again by Corollary A.5, we have that for 2 ≤ t ≤ 1 / ( √ npα ) -2 ,
+
+<!-- formula-not-decoded -->
+
+i.e. for t ≥ 2 , neurons with j ∈ J 20 ε ν, N ∪ J 20 ε -ν, N are active for all noisy points in N ± µ 1 , which proves (A.45).
+
+For x k ∈ C (1) -ν,j , note that a j y k &lt; 0 and ⟨ w (1) j , x k ⟩ &gt; 0 . Then by Corollary A.5, we have ⟨ w (2) j , x k ⟩ &lt; 0 . For x k ∈ C -ν \C (1) -ν,j , by (A.52) we have ⟨ w (0) j , x k ⟩ &gt; 0 , ⟨ w (1) j , x k ⟩ &lt; 0 . It yields that
+
+<!-- formula-not-decoded -->
+
+where the first inequality uses (A.38) and (A.39), and the second inequality uses Assumption (A2). It further yields that
+
+<!-- formula-not-decoded -->
+
+by Assumption (A2). Thus we have C (2) -ν,j = ∅ .
+
+For x k ∈ C (0) ν,j , ⟨ w (0) j , x k ⟩ &gt; 0 , ⟨ w (1) j , x k ⟩ &lt; 0 , which is similar to the setting of C -ν \C (1) -ν,j . Repeating the analysis above, we have
+
+<!-- formula-not-decoded -->
+
+For x k ∈ C ν \C (0) ν,j , note that ⟨ w (0) j , x k ⟩ &lt; 0 , ⟨ w (1) j , x k ⟩ &lt; 0 , then we have
+
+<!-- formula-not-decoded -->
+
+where the first inequality uses (A.39) and the second inequality uses (A.53). Combining the inequalities above, we obtain
+
+<!-- formula-not-decoded -->
+
+Combining (A.52) and (A.57), we have
+
+<!-- formula-not-decoded -->
+
+and it yields that
+
+<!-- formula-not-decoded -->
+
+It remains to prove (A.46). It suffices to prove
+
+<!-- formula-not-decoded -->
+
+since 2 c ν -c -ν +4 n -ν -n ν ≤ n and c ν -2 c -ν -4 n ν +3 n -ν ≥ -n by Lemma 4.1. Without loss of generality, below we only show the proof of the right-hand side. Denote T = { t ∈ [ T ] , t ≥ 3 , D ( t ) ν,j &gt; ∆ µ 1 } = { t i } K i =1 , t 1 &lt; t 2 &lt; · · · &lt; t K . To prove the right-hand side of (A.46), it suffices to show that the followings hold
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+for any i ∈ [ K ] and all s ∈ [ t i , t i +1 -2] . (A.58) directly follows from the definition of the set T and the fact that D ( t ) ν,j ≤ c ν + n -ν for any j, t. For a given t i , t i ∈ T , we have D ( t i ) ν,j &gt; ∆ µ 1 ≥ √ n . By (A.39), we have that for any x k ∈ C ν \C ( t i ) ν ( j ) ,
+
+<!-- formula-not-decoded -->
+
+which implies that w ( t i +1) j is still inactive for those x k that didn't activate w ( t i ) j . For any x k ∈ C ( t i ) ν,j , since a j y k &lt; 0 , by Corollary A.5, we have
+
+<!-- formula-not-decoded -->
+
+Combined with (A.38), we have
+
+<!-- formula-not-decoded -->
+
+where the second inequality uses Assumption (A2). Combining (A.60) and (A.61), we have C ( t i +1) ν,j = ∅ , and
+
+<!-- formula-not-decoded -->
+
+for all x k ∈ C ν . It yields that
+
+<!-- formula-not-decoded -->
+
+̸
+
+̸
+
+where the first equation uses (A.45). It implies that t i +1 -t i &gt; 1 . Let t ⋆ i = min { t ∈ N : t i +1 &lt; t ≤ t i +1 , C ( t ) ν ( j ) = ∅ } . We claim that t ⋆ i is well-defined for each i , because C ( t i +1 ) ν ( j ) = ∅ . Otherwise we have D ( t i +1 ) ν,j ≤ | n + µ 1 -n -µ 1 | &lt; ∆ µ 1 , which contradicts to the definition of the set T . Thus t ⋆ i always exists. Choose one point from the set C ( t ⋆ i ) ν,j and denote it as x ⋆ k . Note that for any
+
+<!-- formula-not-decoded -->
+
+Combined with (A.62), it yields that
+
+<!-- formula-not-decoded -->
+
+It further yields that
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+If t ⋆ i = t i +1 , then we've proved (A.59). If t ⋆ i &lt; t i +1 , then we have
+
+<!-- formula-not-decoded -->
+
+which proves the right side. For the left side, similarly we denote T -= { t ∈ [ T ] , t ≥ 3 , D ( t ) ν,j &lt; -∆ µ 1 } = { t i } K i =1 , t 1 &lt; t 2 &lt; · · · &lt; t K . Following the same analysis, we can prove that the followings hold
+
+<!-- formula-not-decoded -->
+
+for any i ∈ [ K ] and all s ∈ [ t i , t i +1 -2]
+
+## A.5 PROOF OF THE MAIN THEOREM
+
+We rigorously prove Theorem 3.1 in this section. The upper bound of t in the theorems below is 1 / ( √ npα ) -2 , which by Assumption (A4), is larger than √ n , the upper bound of t in Theorem 3.1.
+
+## A.5.1 PROOF OF THEOREM A.8: 1-STEP OVERFITTING
+
+Theorem A.8. Suppose that Assumptions (A1)-(A6) hold. Under a good run, the classifier sgn( f ( x, W ( t ) )) can correctly classify all training datapoints for 1 ≤ t ≤ 1 / ( √ npα ) -2 .
+
+Proof. Without loss of generality, we only consider datapoints in the cluster C + µ 1 ∪N + µ 1 . According to (D1) in Lemma 4.4, we have that under a good run, |J i, (0) P | ≥ m/ 7 , |J i, (0) N | ≥ m/ 7 for each i ∈ [ n ] . For x k ∈ C + µ 1 , by Corollary A.5, we have
+
+<!-- formula-not-decoded -->
+
+for all j ∈ J k, (0) and 0 ≤ s ≤ 1 / ( npα ) -2 ; and
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+for all √ √
+
+<!-- formula-not-decoded -->
+
+where the first inequality uses ϕ ( x ) ≥ 0 , ∀ x ; the second inequality uses the definition of J k, (0) P and (E2) in Corollary A.5; the third inequality uses (A.36) in Corollary A.5; and the last inequality is from Assumption (A2). For x k ∈ N + µ 1 , similarly we have
+
+<!-- formula-not-decoded -->
+
+Thus our classifier can correctly classify all training datapoints for 1 ≤ t ≤ 1 / ( √ npα ) -2 .
+
+## A.5.2 PROOF OF THEOREM 4.7: GENERALIZATION
+
+Before proceeding with the proof of Theorem 4.7, we first state a technical lemma:
+
+Lemma A.9. Suppose that ∥ W ∥ &gt; 0 . Then there exists a constant c &gt; 0 such that
+
+̸
+
+<!-- formula-not-decoded -->
+
+Proof. It suffices to prove that for each ν ∈ centers ,
+
+<!-- formula-not-decoded -->
+
+Then applying the law of total expectation, we have
+
+̸
+
+<!-- formula-not-decoded -->
+
+̸
+
+Since for each ν , N ( ν, I p ) is 1 -strongly log-concave, we plug in λ = 1 in the proof of Lemma 4.1 in Frei et al. (2022b). Then (A.63) is obtained.
+
+Our next theorem shows that the generalization risk is small for large t . Recall the definition of J 1 and J 2 , we equivalently write them as
+
+<!-- formula-not-decoded -->
+
+Here J 20 ε + µ 1 , P , J 20 ε + µ 1 , N , and J 20 ε -µ 1 , N are defined in (A.14). By Lemma 4.4, we know that under a good run,
+
+Theorem 4.7. Suppose that Assumptions (A1)-(A6) hold. Under a good run, for Cn 10 ε ≤ t ≤ √ n , the generalization error of classifier sgn( f ( x, W ( t ) )) has an upper bound
+
+<!-- formula-not-decoded -->
+
+̸
+
+<!-- formula-not-decoded -->
+
+Proof. Without loss of generality, we consider x follows N (+ µ 1 , I p ) . Then we have
+
+<!-- formula-not-decoded -->
+
+where the first inequality uses Jensen's inequality. By Lemma A.6, we have that for j ∈ J 1 ,
+
+<!-- formula-not-decoded -->
+
+where the first inequality is from Lemma A.6 and (C1) in Lemma 4.3; the second inequality uses the property that for j ∈ J 1 , D ( s ) + µ 1 ,j ≥ c + µ 1 -n + µ 1 -d (0) -µ 1 ( j ) , s ≥ 1 , which is also from Lemma A.6; and the third inequality uses Assumption (A5). It yields that
+
+<!-- formula-not-decoded -->
+
+where the last inequality uses (D4) in Lemma 4.4. For the second term in (A.65), note that we have ϕ ( λx ) = λϕ ( x ) , ∀ λ &gt; 0 , and by Jensen's inequality, ϕ ( x 1 + x 2 ) ≤ ϕ ( x 1 ) + ϕ ( x 2 ) , ∀ x 1 , x 2 ∈ R . Then we have
+
+<!-- formula-not-decoded -->
+
+where the last equation uses the expectation of half-normal distribution. By Lemma A.3, we have g ( t ) i ≤ 1 , and
+
+̸
+
+<!-- formula-not-decoded -->
+
+where the last inequality uses ∥ x i ∥ 2 ≤ 2 p , |⟨ x i , x j ⟩| ≤ 2 µ 2 , which comes from Lemma 4.1, and Assumption (A2). It yields that for each j ∈ [ m ] ,
+
+<!-- formula-not-decoded -->
+
+where the last inequality uses Lemma 4.3. Then we consider the decomposition of ∑ j : a j &lt; 0 ϕ ( ⟨ w ( t ) j , µ 1 ⟩ ) :
+
+<!-- formula-not-decoded -->
+
+For the first term, we have
+
+<!-- formula-not-decoded -->
+
+where the third inequality uses (A.30) in Lemma A.4; the fourth inequality uses Lemma A.7; and the fiveth inequality uses Assumptions (A1) and (A5). For the second term, we have
+
+<!-- formula-not-decoded -->
+
+where the second inequality uses (A.30) in Lemma A.4; the third inequality uses Assumption (A5) and | D ( t ) ν,j | ≤ max { c ν + n -ν , c -ν + n ν } , which comes from the definition of D ( t ) ν,j ; the fourth inequality uses c ν + n -ν +1 ≤ n for all ν ∈ centers , and the last inequality uses (A.64). Combining (A.68), (A.69), (A.70), and (A.71), we have
+
+<!-- formula-not-decoded -->
+
+It follows that
+
+<!-- formula-not-decoded -->
+
+for t ≥ Cn 10 ε when C is large enough. Here the second inequality uses |J 1 | ≥ mn -10 ε ; the third inequality uses (B3) in Lemma 4.1 and Assumption (A1); and the last inequality uses ε &lt; 0 . 01 . By (A.69), it follows that ∥ W ( t ) ∥ F ≤ 3 αt √ p/n . Thus we have
+
+<!-- formula-not-decoded -->
+
+This lower bound for the normalized margin can be easily extended to the other ν 's. Applying Lemma A.9, we have
+
+̸
+
+<!-- formula-not-decoded -->
+
+Lemma 4.6. Suppose that Assumptions (A1)-(A6) hold. Under a good run, we have that for 1 ≤ t ≤ √ n ,
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+Proof. This lemma is essentially implied by the proof of Lemma 4.7. By (A.66), we know that for all j ∈ J 1 ,
+
+<!-- formula-not-decoded -->
+
+Then note that ⟨ w ( t ) j , + µ 1 ⟩ = ϕ ( ⟨ w ( t ) j , + µ 1 ⟩ ) . From this we have
+
+<!-- formula-not-decoded -->
+
+where the first inequality comes from (A.67). Recall that in Lemma A.7, ∆ µ 1 is defined as | n + µ 1 -n -µ 1 | + √ n . Applying (B3) in Lemma 4.1, we have
+
+<!-- formula-not-decoded -->
+
+Then ∆ µ 1 is upper bounded by
+
+<!-- formula-not-decoded -->
+
+Combining the inequality above with equation (A.70), we have
+
+<!-- formula-not-decoded -->
+
+## A.5.3 PROOF OF THEOREM A.13: 1-STEP TEST ACCURACY
+
+Before stating the proof, we begin with the necessary definitions and a preliminary result. Recall that h ( t ) i = g ( t ) i -1 / 2 and the decomposition (A.28). When t = 0 , we denote
+
+<!-- formula-not-decoded -->
+
+and W (1) T := [ w (1) 1 , T , · · · , w (1) m, T ] ⊤ . Next lemma shows that W (1) T is a good approximation of W (1) with a large probability.
+
+Lemma A.10. Suppose Assumptions (A1) and (A2) hold. Given { x i } ∈ G data and W (0) ∈ G W , we have √
+
+<!-- formula-not-decoded -->
+
+Proof. Let z ( t ) i = y i f ( x i ; W ( t ) ) . Note that ℓ ′ ( z ) = -1 / (1 + exp( z )) , we have | -ℓ ′ ( z ) -1 / 2 | ≤ | z | / 2 . It yields that
+
+<!-- formula-not-decoded -->
+
+where the first inequality uses h ( t ) i = g ( t ) i -1 / 2 and g ( t ) i := -ℓ ′ ( z ( t ) i ) ; the second inequality uses triangle inequality; the third inequality uses Cauchy-Schwarz inequality; and the last inequality uses (B1) in Lemma 4.1 and (C1) in Lemma 4.3. Denote h max = max i ∈ [ n ] | h (0) i | . Then we have
+
+̸
+
+<!-- formula-not-decoded -->
+
+where the second inequality uses ∥ x i ∥ 2 ≤ 2 p and p ≥ Cn 2 ∥ µ ∥ 2 , which come from (B1) and (B2) in Lemma 4.1 and Assumption (A2) respectively, and the third inequality uses (A.74). Further we have
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+Lemma A.11. Suppose that Assumptions (A1)-(A6) hold. Given X ∈ G data, for each j ∈ [ m ] , we have
+
+<!-- formula-not-decoded -->
+
+Proof. Recall that A 1 = C + µ 1 ∪N -µ 1 , A 2 = C -µ 1 ∪N + µ 1 . According to equation (A.18), we have
+
+<!-- formula-not-decoded -->
+
+According to Lemma A.15, we have
+
+<!-- formula-not-decoded -->
+
+where f 1 ( b 1 , · · · , b n ) := ( ∑ i ∈A 1 b i -∑ i ∈A 2 b i -( |A 1 | - |A 2 | ) / 2) 2 ≥ 0 , and b ′ i are i.i.d Bernoulli random variables defined in Lemma A.15, and the last inequality is from (A.17). On the other side, similarly we have
+
+<!-- formula-not-decoded -->
+
+where the last inequality is from (B3) in Lemma 4.1. Denote f 2 ( b 1 , · · · , b n ) := ( ∑ i ∈A 1 b i -∑ i ∈A 2 b i -( |A 1 | - |A 2 | ) / 2) 4 ≥ 0 , then we have
+
+<!-- formula-not-decoded -->
+
+where the first inequality uses Lemma A.15; the second inequality uses ( a + b ) 4 ≤ 8( a 4 + b 4 ) ; the third inequality uses the formula of the fourth central moment of a binomial distribution with parameter equal to 1 / 2 , i.e. µ 4 ( B ( n, 1 / 2)) = n (1 + (3 n -6) / 4) / 4 ≤ n 2 / 4 ; and the last inequality is from (B3) in Lemma 4.1. Combining (A.76) and (A.77), we have
+
+<!-- formula-not-decoded -->
+
+by applying the Cauchy-Schwarz inequality.
+
+Lemma A.12. Suppose that Assumptions (A1)-(A6) hold. Given X = [ x 1 , · · · , x n ] ⊤ ∈ G data, we have √
+
+<!-- formula-not-decoded -->
+
+Denote
+
+<!-- formula-not-decoded -->
+
+Proof. In this proof, by convention all P ( · ) , E [ · ] , Var ( · ) , ρ ( · ) are implicitly conditioned on a fixed X . Denote the expectation of D (0) + µ 1 ,j by e + µ 1 . Note that conditioning on X , { a j ϕ ( a j D (0) + µ 1 ,j ) } j ≥ 1 are i.i.d, and the expectation of D (0) + µ 1 ,j is
+
+<!-- formula-not-decoded -->
+
+where the inequality uses (B3) in Lemma 4.1. By Lemma A.11, we have
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+Combining (A.79) and results in Lemma A.14, we have
+
+<!-- formula-not-decoded -->
+
+Applying Berry-Esseen theorem, we have
+
+<!-- formula-not-decoded -->
+
+for some universal constant C &gt; 0 . Here the second inequality uses σ 2 + µ 1 ≤ ( √ n + | e + µ 1 | ) 2 , which comes from (A.80), and the last inequality uses (A.78). By the symmetry of a j , we have
+
+<!-- formula-not-decoded -->
+
+By (A.79), we have
+
+<!-- formula-not-decoded -->
+
+Similarly, applying Berry-Esseen theorem, we have
+
+<!-- formula-not-decoded -->
+
+where the inequality uses Var ( ma j | a j D (0) + µ 1 ,j | ) ≤ ( √ n + | e + µ 1 | ) 2 and (A.78). Then the results of this lemma are proved by noting that C n √ ε ≥ 1 for large enough n .
+
+Theorem A.13. Suppose that Assumptions (A1)-(A6) hold. With probability at least 1 -O (1 / √ m ) -O ( n -ε ) over the initialization of the weights and the generation of training data, after one iteration, the classifier sgn( f ( x, W (1) )) exhibits a generalization risk with the following bounds:
+
+̸
+
+<!-- formula-not-decoded -->
+
+Proof. For any given training data X ∈ G data, denote the expectation of D (0) ν,j by e ν , i.e.
+
+<!-- formula-not-decoded -->
+
+and a set of parameters G X :
+
+<!-- formula-not-decoded -->
+
+Applying the union bound, we have
+
+<!-- formula-not-decoded -->
+
+by Lemma A.12 and 4.3. Further we have
+
+<!-- formula-not-decoded -->
+
+Define events F test ,ν for test data:
+
+<!-- formula-not-decoded -->
+
+Treat { x } ∪ { x i } n i =1 as a new 'training' set with n +1 datapoints. Following the proof procedure in Lemma 4.1, we can show that P x ∼ N ( ν,I p ) ( x ∈ F test | X ∈ G data ) ≥ 1 -n -ε , where F test := ∪ ν ∈{± µ 1 , ± µ 2 } F test ,ν . And F test is a symmetric set for x , i.e., if x ∈ F test, then -x also belongs to F test . In the remaining proof, by convention all probabilities and expectations are implicitly conditioned on fixed X ∈ G data and a, W (0) ∈ G X . Therefore, to simplify notation, we write P ( · ) and E [ · ] to denote P ( · | a, W (0) , { x i } ) and E [ · | a, W (0) , { x i } ] , respectively. In other words, the randomness is over the test data ( x, y ) , conditioned on a fixed initialization and training data. We first look at the clusters centered at ± µ 1 , i.e. x ∼ N ( ± µ 1 , I p ) , y = 1 . Then we have
+
+̸
+
+<!-- formula-not-decoded -->
+
+Note that given W (0) and X , we have with probability 1 that
+
+<!-- formula-not-decoded -->
+
+where the first inequality comes from the 1 -Lipschitz continuity of ϕ ( · ) ; the second inequality uses Cauchy-Schwarz inequality; and the last inequality uses Lemma 4.3. Next, recall that W T is defined
+
+as in (A.73). By the same argument above, we have
+
+<!-- formula-not-decoded -->
+
+where the first inequality comes from the 1 -Lipschitz continuity of ϕ ( · ) ; the second inequality uses Cauchy-Schwarz inequality; the third inequality uses Lemma A.10; and the last inequality uses Assumption (A3). Using (A.84) and (A.85), we have by the triangle inequality that
+
+<!-- formula-not-decoded -->
+
+Recall that
+
+<!-- formula-not-decoded -->
+
+Then under a good run, for x ∈ F test, we have that with probability 1 ,
+
+<!-- formula-not-decoded -->
+
+where C n = 10 √ log( n ) and the inequality uses the definition of F test . It yields that
+
+<!-- formula-not-decoded -->
+
+According to the definition of G X , we have
+
+<!-- formula-not-decoded -->
+
+Combining (A.86)-(A.88), we have
+
+<!-- formula-not-decoded -->
+
+The above inequality immediately implies that
+
+<!-- formula-not-decoded -->
+
+Similar to (A.89), for -x ∼ N ( -µ 1 , I p ) , we have
+
+<!-- formula-not-decoded -->
+
+Note that by definition, e -µ 1 = -e + µ 1 , the above inequality immediately implies that
+
+<!-- formula-not-decoded -->
+
+According to the definition of G test, we have ϵ x ≤ 4 ω init √ mp 3 / 2 . According to the definition of G data , we have
+
+<!-- formula-not-decoded -->
+
+Thus we have | e + µ 1 | ≥ n 1 / 2 -ε / 4 . It yields that
+
+<!-- formula-not-decoded -->
+
+where the first inequality uses | e + µ 1 | ≥ n 1 / 2 -ε / 4 and ϵ x ≤ 4 ω init √ mp 3 / 2 ; the second inequality uses Assumption (A5), (A1) and (A6); and the last inequality uses n is large enough. Combining (A.90)-(A.92), we have
+
+<!-- formula-not-decoded -->
+
+where the inequality uses ϵ x ≥ 0 . Following a similar procedure, for the other side, we have
+
+<!-- formula-not-decoded -->
+
+Combining (A.93) and (A.94), we have
+
+<!-- formula-not-decoded -->
+
+Following the same procedure, we have that for any ν ∈ {± µ 1 , ± µ 2 } ,
+
+<!-- formula-not-decoded -->
+
+Then for ( x, y ) ∼ P clean, we have
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+## A.6 PROBABILITY LEMMAS
+
+Lemma A.14. Suppose we have a random variable g that has finite L 3 norm and a Rademacher variable a that is independent with g . Then we have
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+Proof. The expectation of the random variable aϕ ( ag ) is
+
+<!-- formula-not-decoded -->
+
+where the first equation uses the law of expectation, and the second equation uses ϕ ( x ) -ϕ ( -x ) = x. The second moment of aϕ ( ag ) is
+
+<!-- formula-not-decoded -->
+
+where the last equation uses ϕ ( x ) 2 + ϕ ( -x ) 2 = x 2 . Combining (A.97) and (A.98), we have
+
+<!-- formula-not-decoded -->
+
+which implies (A.95). Moreover, for a random variable X that has finite L 3 norm, we have
+
+<!-- formula-not-decoded -->
+
+where the second inequality is due to ∥ E [ X ] ∥ 3 = | E [ X ] | and the last inequality is due to ∥ X ∥ 1 ≤ ∥ X ∥ 3 . Thus we have
+
+<!-- formula-not-decoded -->
+
+where the last equation is due to ϕ ( x ) 3 + ϕ ( -x ) 3 = | x | 3 . Then by ∥ g ∥ 3 ≤ ∥ g -E [ g ] ∥ 3 + | E [ g ] | , we have
+
+<!-- formula-not-decoded -->
+
+̸
+
+Lemma A.15. Suppose Z = [ z 1 , · · · , z n ] ⊤ ∼ N (0 , Σ) , where Σ ii = 1 , and | Σ ij | ≤ 1 / ( Cn 2 ) , 1 ≤ i = j ≤ n. And Z ′ = [ z ′ 1 , · · · , z ′ n ] ⊤ ∼ N (0 , I n ) . Let b i = I ( z i &gt; 0) and b ′ i = I ( z ′ i &gt; 0) , i ∈ [ n ] be Bernoulli random variables. Let B = [ b 1 , · · · , b n ] ⊤ and B ′ = [ b ′ 1 , · · · , b ′ n ] ⊤ . Then we have that for any non-negative function f : R n → R + ∪ { 0 } ,
+
+<!-- formula-not-decoded -->
+
+Proof. Note that for any fixed value ( b 1 , · · · , b n ) ∈ { 0 , 1 } n , P B ′ ( b ′ 1 , · · · , b ′ n ) = (1 / 2) n . Then we have
+
+<!-- formula-not-decoded -->
+
+where the inequality comes from Lemma A.16. On the other side, similarly we have
+
+<!-- formula-not-decoded -->
+
+By C &gt; 8 , we have (2 γ 1 ) n = (1 -4 / ( Cn )) n ≥ 1 -4 / ( Cn ) ≥ 1 / 2 and (2 γ 2 ) n = (1+4 / ( Cn )) n ≤ exp(4 /C ) ≤ exp(1 / 2) ≤ 2 . Combining these results with (A.99) and (A.100), we have
+
+<!-- formula-not-decoded -->
+
+̸
+
+Lemma A.16. Suppose Z = [ z 1 , · · · , z n ] ⊤ ∼ N (0 , Σ) , where Σ ii = 1 , and | Σ ij | ≤ 1 / ( Cn 2 ) , 1 ≤ i = j ≤ n. Then we have that for any subset A ⊆ [ n ] ,
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+Proof. We first prove the result for A = [ n ] . Note that
+
+<!-- formula-not-decoded -->
+
+Let Z k -1 = [ z 1 , · · · , z k -1 ] ⊤ and denote the covariance matrix of [ z 1 , · · · , z k ] as
+
+<!-- formula-not-decoded -->
+
+where Σ k -1 = Cov ( Z k -1 ) and ϵ k = Cov ( Z k -1 , z k ) . Then | ϵ kj | ≤ 1 / ( Cn 2 ) for j ∈ [ k -1] , and the conditional distribution of z k | Z k -1 is N ( ϵ ⊤ k Σ -1 k -1 Z k -1 , 1 -ϵ ⊤ k Σ -1 k -1 ϵ k ) . By Gershgorin circle theorem, we have
+
+<!-- formula-not-decoded -->
+
+Denote f k -1 ( · ) as the density function of Z k -1 . Then we have
+
+<!-- formula-not-decoded -->
+
+for sufficiently large n . Here the second inequality uses | Φ( x ) -Φ(0) | ≤ Φ ′ (0) | x | and CauchySchwarz inequality; the third inequality uses σ min (Σ k -1 ) = λ min (Σ k -1 ) ≥ 1 / 2 and ∥ Σ -1 / 2 k -1 ϵ k ∥ ≤ √ 2 ∥ ϵ k ∥ ≤ √ 2 n -3 / 2 /C ; and the fourth inequality uses the concentration inequality for chi-square random variables in Lemma A.17. Then the result is proved by combining (A.101) and (A.102). On the other side, we have
+
+<!-- formula-not-decoded -->
+
+Note that our proof does not use any information related to A , thus we can extend the result for any subset A ⊆ [ n ] .
+
+Lemma A.17. For X i.i.d ∼ N (0 , σ 2 ) , 1 ≤ k ≤ n , we have
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+Proof. For the first inequality, we note that
+
+<!-- formula-not-decoded -->
+
+It yields that for any t ≥ 1 ,
+
+<!-- formula-not-decoded -->
+
+On the other side, we have
+
+<!-- formula-not-decoded -->
+
+When t ≥ 1 , it further yields that ¯ Φ( t ) ≥ Φ ′ ( t ) / (2 t ) . Thus we have
+
+<!-- formula-not-decoded -->
+
+The second inequality is Example 2.11 in Wainwright (2019)
+
+Lemma A.18 (Hoeffding's inequality, Equation (2.11) in Wainwright (2019)) . Let X k , 1 ≤ k ≤ n be a series of independent random variables with X k ∈ [ a, b ] . Then
+
+<!-- formula-not-decoded -->
+
+Lemma A.19. [Berry-Esseen Theorem, Theorem 3.4.17 in Durrett (2019)] Let X 1 , · · · , X n are i.i.d. random variables with E [ X i ] = 0 , Var ( X i ) = σ 2 , and E [ | X i | 3 ] = ρ &lt; ∞ . If F n ( x ) is the distribution of ∑ n i =1 X i / ( σ √ n ) , then
+
+<!-- formula-not-decoded -->
+
+## A.7 EXPERIMENTAL DETAILS
+
+In our experiments, dimension p = 40000 , number of train/test samples n = 200 µ = 2 . 5 √ p/n , number of neurons m = 1000 , label noise rate η = 0 . 05 , and initial weight scale ω init = 10 -15 . For Figure 3, 2, and 1-left, the step size α = 10 -12 . For Figure 4 and 1-right, α = 10 -16 .
+
+Figure 4: Histograms of inner products between positive neurons and µ 's pooled over 100 independent runs under the same setting as in Figure 1 but with a smaller step size. Top (resp. bottom) row: Inner products between positive neurons and µ 1 (resp. µ 2 ). While the projections of positive neurons w ( t ) j onto the µ 1 and µ 2 directions have nearly the same distribution when the network cannot generalize, they become much more aligned with ± µ 1 when the network can generalize.
+
+<!-- image -->
+
+## A.8 ADDITIONAL EXPERIMENTS
+
+In this section, we show additional experiments with setups that are variations on that of Figure 1. See Appendix A.7 for details of the setup of the experiments in Figure 1.
+
+<!-- image -->
+
+Figure 5: More samples hurt generalization . Same experimental setup as in Figure 1 (Left) except that the sample size n = 2000 is 10 times larger. Even running over 10 × number of steps, the median test accuracy remains near 90% , while in Figure 1 the median test accuracy is 100% .
+
+Figure 6: Larger initial weight scale . Same experimental setup as in Figure 1 except that the initial weight scale ω init are larger. (Recall that ω init = 10 -15 in Figure 1). Moreover, the experiments corresponding to ω init = 10 -12 (resp. ω init = 10 -11 ) are ran with 10 × (resp. 100 × ) number of steps.
+
+<!-- image -->
+
+Figure 7: Train both layers . Same experimental setup as in Figure 1 except that the outer layer weights are also trained. The accuracy dynamics is similar to that of Figure 1.
+
+<!-- image -->

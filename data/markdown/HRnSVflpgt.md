@@ -1,0 +1,712 @@
+## Schur Nets: effectively exploiting local structure for equivariance in higher order graph neural networks
+
+Qingqi Zhang 1 ∗ , Ruize Xu 2 ∗ and Risi Kondor 1 , 2 , 3
+
+1 Computational and Applied Mathematics Departments of 2 Computer Science and 3 Statistics University of Chicago {qingqi,richard1xur,risi}@uchicago.edu
+
+## Abstract
+
+Recent works have shown that extending the message passing paradigm to subgraphs communicating with other subgraphs, especially via higher order messages, can boost the expressivity of graph neural networks. In such architectures, to faithfully account for local structure such as cycles, the local operations must be equivariant to the automorphism group of the local environment. However, enumerating the automorphism groups of all subgraphs of interest and finding appropriate equivariant operations for each one of them separately is generally not feasible. In this paper we propose a solution to this problem based on spectral graph theory that bypasses having to determine the automorphism group entirely and constructs a basis for equivariant operations directly from the graph Laplacian. We show that this approach can boost the performance of GNNs on some standard benchmarks.
+
+## 1 Introduction
+
+Message pasing neural networks (MPNNs) are the most popular paradigm for building neural networks on graphs [18]. While MPNNs have proved to be remarkably effective in a range of domains from program analysis [1] to drug discovery [20], a series of both empirical [3] and theoretical [40, 10] results have shown that the fact that MPNNs are based on just vertices sending messages to their neighbors limits their expressive power. This problem is especially acute in domains such as chemistry, where the presence or absence of specific small structural units (functional groups) directly influences the behavior and properties of molecules.
+
+Recent papers proposed to address this issue by extending the message paradigm to also allow for message passing between vertices and edges [24] or between subgraphs [2, 15, 4, 46]. However, if the actual messages remain scalars, the added expressive power of these networks is relatively limited.
+
+A newer development is the appearance of higher order MPNN s, where the messages are not just scalars, but more complex objects indexed by the vertices of the sending and receiving subgraphs [31, 34, 14]. For example, in an organic molecule, the internal state of a benzene ring (six carbon atoms arranged in a cycle) can be represented as a matrix T ∈ R 6 × c , where the rows correspond to the individual carbons. When this benzene ring passes a message to a neighboring benzene ring that it shares an edge with, information relating to the two shared carbons can be sent directly to the corresponding atoms in the second ring. Information relating to the other vertices has to be treated differently. Hypergraph neural networks [15, 45, 41] and neural networks on more abstract mathematical structures such as simplicial complexes [7, 6] are closely related, since these also
+
+* denotes equal contribution.
+
+involve higher order generalizations of message passing between combinatorial objects interlocked in potentially complicated ways.
+
+In prior work we introduced a formalism called P -tensors that provides a flexible framework for implementing and reasoning about higher order MPNNs [21]. P -tensors build closely on the by now substantial literature on permutation equivariance in neural networks from Deep Sets [43], to various works studying higher order permutation equivariant maps [32]. It is also related to the category theoretic approach employed in Natural Graph Neural Networks [12].
+
+One aspect of higher order message passing that has hithero not been studied in detail is the interaction between the local graph structure and the equivariance constraint. Intuitively, the reason that GNNs must be equivariant to permutations is that when the same, or analogous, graphs are presented to the network with the only difference being that the vertices have been renumbered, the final output must remain the same. However, Thiede et al. [37] observed that enforcing full permutation equivariance, especially at the local level, can be too restrictive. When considering specific, structurally important subgraphs such as paths or cycles, the operations local to such a subgraph S should really only be equivariant to the automorphism group of S , rather than all | S | ! permutations. The Autobahn architecture described in [37] explicitly accounts for the automorpism group of two specific types of subgraphs, cycles and path. Defining bespoke convolution operations on these two types of subgraphs was shown to improve performance on molecular datasets like ZINC [26].
+
+The drawback of the Autobahn approach is that it requires explicitly identifying the automorphism group of each type of subgraph, and crafting specialized equivariant operations based on its representation theory. For more flexible architectures leveraging not just cycles and paths but many other types of subgraphs this quickly becomes infeasible.
+
+Main contributions. The main contribution of this paper is a simple algorithm based on spectral graph theory for constructing a basis of automorphism equivariant operations on any possible subgraph without explicitly having to determine its automorphism group, let alone derive its irreducible representations. The algorithm is based on imitating the structure of the group theoretical approach to equivariance, which we summarize in Section 3, but bypassing having to use actual group theory. Section 4 describes the algorithm itself and the resulting neural network operations, which we call Schur layers . In Section 5 we show that the introduction of Schur layers does indeed improve the performance of higher order graph neural networks on standard molecular benchmarks.
+
+## 2 Background: equivariance with side information
+
+Let G be an undirected graph with vertex set V = { 1 , 2 , . . . , n } and edge set E ⊆ V × V represented by the adjacency matrix A ∈ R n × n . Graph neural networks (GNNs) address one of two, closely related tasks: (a) given a function f in : V → R on the vertices of G , learn to transform it to another function f out : V → R ; (b) given not just one graph, but an entire collection of graphs, learn to map each graph G , or rather its adjacency matrix, to a scalar or vector ψ ( A ) that characterizes G 's structure.
+
+In both cases, the critical constraint is that the network must behave appropriately under permuting the order in which the vertices are listed. The group of all permutations of { 1 , 2 , . . . , n } is called the symmetric group of degree n and denoted S n . Applying a permutation σ ∈ S n to the vertices changes the adjacency matrix to A ′ = σ ( A ) with
+
+<!-- formula-not-decoded -->
+
+The basic constraint on algorithms that operate on functions on graphs is that if the input is transformed along with the numbering of the vertices, f in i ′ = f in σ -1 ( i ) , then the output must transform the same way, f out i ′ = f out σ -1 ( i ) . This property is called equivariance . Formally, denoting the mapping from inputs to outputs ϕ : f in ↦→ f out , equivariance states that the action σ : f ↦→ f ′ of permutations on functions given by f ′ i = f σ -1 ( i ) must commute with ϕ , that is,
+
+<!-- formula-not-decoded -->
+
+for any σ ∈ S n and any input function f in ∈ R V . In contrast, for networks that just learn embeddings G ↦→ ψ ( A ) , the constraint is invariance to permutations, i.e., ψ ( A ) = ψ ( σ ( A )) . In practice, the two cases are closely related because most graph embedding networks work with functions defined on the
+
+vertices, and then symmetrize over permutations in their final layer using a readout function such as ψ ( G ) = ∑ i f out i .
+
+Enforcing (2) on the hypothesis space directly would be very limiting, effectively constraining GNNs to be composed of symmetric polynomials of f in combined with pointwise nonlinearities. Message passing graph neural networks cleverly get around this problem by using the adjacency matrix itself as side information to guide equivariance. For example, in classical (zeroth order) MPNNs, the output of each layer is a (vector valued) function on the graph, and the update rule from layer ℓ to layer ℓ +1 in the simplest case is
+
+<!-- formula-not-decoded -->
+
+where N ( i ) denotes the neighbors of node i in G , W and θ are learnable weight matrices/vectors and η is a suitable nonlinearity. The fact that the summation only extends over the neighbors of vertex i induces a dependence of ϕ on the adjacency matrix A . Hence it would be more accurate to use the notation ϕ A for the mapping, and write the equivariance condition as
+
+<!-- formula-not-decoded -->
+
+In this interpretation, when the vertices are permuted, A can implicitly provide information about this to the algorithm, allowing it to compensate. However, A cannot convey any information about permutations that leave it invariant, so ϕ A must still be equivariant to the group of all such permutations, called the automorphism group of G , denoted Aut ( G ) or just Aut ( A ) . This observation about A acting as a source of side information that can reduce the size of the group that individual GNN operations need to be equivariant to is the starting point for the rest of this paper.
+
+## 2.1 Higher order GNNs
+
+Despite the great success of message passing networks, a long sequence of empirical as well as theoretical results [40, 34, 30, 13, 35] over the last several years have made it clear that the expressive power of algorithms based on simple update rules like (3) is severely limited. In response, the community has extended the message passing paradigm to message passing between vertices and edges or between carefully selected subgraphs [18, 34, 6, 8]. These networks maintain the local and equivariant character of earlier MPNNs, but they can more faithfully reflect local topological information and are particularly well suited to domains such as chemistry, where capturing local structures such as functional groups is critical.
+
+In tandem, researchers have developed higher order MPNN architectures, where the outputs of individual edge or subgraph 'neurons' are not just scalars, but vector or tensor quantities indexed by the vertices of the graph involved in the given substructure. For example, in the chemistry setting, if n is a titular neuron corresponding to a benzene ring in a molecule, the output of n , assuming we have C channels, might be a matrix T ∈ R 6 × C or a tensor T ∈ R 6 × 6 × C , or T ∈ R 6 × 6 × 6 × C , etc.. In each of these cases the non-channel dimensions correspond to the six atoms making up the ring, and when n communicates with other subgraph-neurons, must be treated accordingly. Such higher order representations offer greater expressive power because they allow T to capture information about relations between pairs of vertices, triples, and so on. The general trend towards studying higher order message passing is also closely tied to the emergence of hypergraph neural networks [15], 'topological' neural networks and simplicial complex networks [7, 6].
+
+Recently, [21] proposed a general formalism for describing such higher order architectures using so-called P -tensors. In this formalism, given a neuron n attached to a subgraph S with m vertices, we say that the output of n is a zeroth order P -tensor T with C channels if it is simply a vector T ∈ R C . The elements of this vector are scalars in the sense that they are invariant to permutations of the vertices of S . We say that T is a first order P -tensor if it is a matrix T ∈ R m × C whose columns transform under permutations of S similarly to how f in and f out transform under global permutations of the full graph:
+
+<!-- formula-not-decoded -->
+
+We say that T is a second order P -tensor T ∈ R m × m × C , if each slice corresponding to a given channel transforms according to the second order action of the symmetric group, similarly (1):
+
+<!-- formula-not-decoded -->
+
+Continuing this pattern, a k 'th order P -tensor T ∈ R m × m × ... × m × C transforms under local permutations as
+
+<!-- formula-not-decoded -->
+
+[21] derives the general rules for equivariant message passing between such P -tensors in the cases that the sending and receiving subgraphs S resp. S ′ are (a) the same (b) partially overlap (c) are disjoint. However, in each of these cases however it was assumed that T needs to be equivariant to all possible permutations of the vertices of the underlying subgraphs S and S ′ .
+
+As we discussed above, this is an overly restrictive condition that limits the extent to which a higher order subgraph neural network can exploit the underlying topology. In the following sections we focus on just the type of messages that are sent from a given subgraph S to itself (called linmaps in the P -tensors nomenclature), and derive a way of making these messages equivariant to just Aut( S ) rather than the full symmetric group S m .
+
+## 3 Equivariance to local permutations: the group theoretic approach
+
+Recall that a representation of a finite group G such as S m or Aut( S ) is a (complex) matrix valued function ρ : G → C d ρ × d ρ where the ρ ( σ ) matrices multiply the same way as the corresponding group elements do
+
+<!-- formula-not-decoded -->
+
+Two representations ρ and ρ ′ are said to be equivalent if there is an invertible matrix Q such that ρ ′ ( σ ) = Q -1 ρ ( σ ) Q for all group elements. A representation of a finite group is said to be reducible if there is some invertible matrix Q that reduces it to a block diagonal form
+
+<!-- formula-not-decoded -->
+
+Some fundamental results in representation theory tell us that G only has a finite number of inequivalent irreducible representations ( irreps , for short), these irreps can be chosen to all be unitary, and that any representation of G is reducible to some combination of them [36]. These facts give rise to a type of generalized Fourier analysis on finite groups that can decompose vectors that G acts on into parts transforming according to the unitary irreps of the group.
+
+The general approach to defining Aut( S ) -equivariant maps for first, second, and higher order subgraph neurons would use this machinery. In particular, defining permutation matrices as usual as
+
+<!-- formula-not-decoded -->
+
+dropping the channel indices without loss of generality, and writing our P -tensors in vectorized form T = vec ( T ) ∈ R m k , (5)-(7) can be written in a unified form
+
+<!-- formula-not-decoded -->
+
+where P k ( σ ) is the k -fold Kronecker product matrix P k ( σ ) = P σ ⊗ P σ ⊗ . . . P σ . Crucially, as σ ranges over the automorphisms of S , these product matrices P k ( σ ) , form a unitary representation of the automorphism group.
+
+According to representation theory, P k must then be decomposable into a direct sum of irreps ρ 1 , . . . , ρ p of Aut( S ) with corresponding multiplicities κ 1 , . . . , κ p . The same unitary matrix Q that accomplishes this can also be used to decompose T into a combinations of smaller vectors ( t i j ∈ R d ρ i ) i,j :
+
+<!-- formula-not-decoded -->
+
+where each t i j now transforms independently under the action of the group as t i j ↦→ ρ i ( σ ) t i j . Alternatively, stacking all t i j vectors transforming according to the same irrep ρ i together in a matrix T i ∈ R d ρ i × κ i , we arrive at a sequence of matrices T 1 , T 2 , . . . , T p transforming as
+
+<!-- formula-not-decoded -->
+
+It is very easy to see how one might construct learnable linear operations that are equivariant to these actions: simply multiply each T i from the right by a learnable weight matrix W i .
+
+This general, group theoretic approach to constructing automorphism group equivariant linear maps between k 'th order P -tensors can be seen as a special case of [29, 38]. Operationally, it just reduces to the following sequence of steps:
+
+1. Find the unitary matrix Q that decomposes P k ( σ ) = P σ ⊗ . . . ⊗ P σ into a direct sum of Aut( S ) irreps.
+2. Use Q to decompose the input P -tensor into a sequence of matrices T 1 . . . T p transforming as (8).
+3. Multiply each T i by an appopriate learnable weight matrix W i ∈ R κ i × κ i .
+4. Use the inverse map Q -1 = Q † to reassemble T 1 , T 2 , . . . , T p into the output P -tensor T out .
+
+Notwithstanding its elegance, this representation approach to implementing automorphism group equivariance also has some disadvantages. Specifically, it requires to (a) determine the automorphism group of each subgraph, and (b) explicitly find its irreducible representations, which is also not trivial. The underlying mathematical structure however is important because it forms the basis to generalizing the approach to a much simpler framework in the next section:
+
+1. We have a collection of (orthogonal) linear maps { P k ( σ ): U ↦→ U } σ ∈ Aut( S ) (with U = R m k ) that the neuron's operation needs to be equivariant to.
+2. U is decomposed into an orthogonal sum of subspaces U = U 1 ⊕ . . . ⊕ U p corresponding to the different irreps featured in the decomposition of P k .
+3. Each U i is further decomposed into an orthogonal sum of subspaces U i = V i 1 ⊕ . . . ⊕ V i κ i corresponding to the different columns of the T i matrices.
+4. The decomposition is such that the { P k ( σ ) } maps fix each V i j subspace. Moreover, for a fixed i , { P k ( σ ) } acts the same way on each V i j subspace by ρ i ( σ ) .
+5. This structure implies that any linear map that linearly mixes the V i 1 , . . . V i κ i subspaces but does not mix information across subspaces with different values of i is equivariant.
+
+## 4 Equivariance via spectral graph theory: Schur layers
+
+In place of the representation theoretical approach described in the previous section, in this paper we advocate a simpler way of implementing automorphism group equivariance based on just spectral graph theory. The cornerstones of this approach are the following two theorems. The proofs can be found in the Appendix.
+
+Theorem 1. Let G be a finite group acting on a space U by the linear action { g : U → U } g ∈ G . Assume that we have a decomposition of U into a sequence of spaces of the form
+
+<!-- formula-not-decoded -->
+
+where each U i is invariant under the action of the group (this means that for any g ∈ G and v ∈ U i , we have g ( v ) ∈ U i ). Let ϕ : U → U be a linear map that is a homothety on each U i , i.e., ϕ ( w ) = α i w for some fixed scalar α i for any w ∈ U i . Then ϕ is equivariant to the action of G , i.e., ϕ ( g ( u )) = g ( ϕ ( u )) for any u ∈ U and any g ∈ G .
+
+The representation theoretic result of the previous section corresponds to a refinement of this result involving a further decomposition of each U i space into a sequence of smaller subspaces.
+
+Theorem 2. Let G and U be as in Theorem 1, but now assume that each U i further decomposes into an orhthogonal sum of subspaces in the form U i = V i 1 ⊕ . . . ⊕ V i κ i such that
+
+- (b) For any fixed value of i , the spaces V i 1 , . . . , V i κ i are isomorphic and there is a set of canonical isomorphisms ι i j → j ′ : V i j → V i j ′ between them such that
+- (a) Each V i j subspace is individually invariant by G ;
+
+g ( ι i j → j ′ ( v )) = ι i j → j ′ ( g ( v )) ∀ v ∈ V i j . Let ϕ : U → U be a map of the form ϕ ( v ) = ∑ j ′ α i j,j ′ ι i j → j ′ ( v ) v ∈ V i j for some fixed set of coefficients { α i j,j ′ } . Then ϕ is equivariant to the action of G on U .
+
+In the matrix language of the previous section, U 1 , . . . , U p correspond to the T 1 , T 2 , . . . , T p matrices, whereas the V i 1 , . . . , V i κ i subspaces of U i correspond to individual columns of T i . For any fixed i , the ( α i j,j ′ ) j,j ′ scalars correspond to the individual matrix entries of the learnable weight matrix W i . For our simplified spectral approach to automorphism group equivariance we will content ourselves with using Theorem 1 rather than Theorem 2.
+
+## 4.1 Automorphism invariance the simple way via spectral graph theory
+
+The key insight of this paper is that we do not necessarily need to use heavy representation theoretic machinery to find a system of subspaces to plug into Theorem 1. In particular, we have the following simple lemma.
+
+Lemma 1. Let S be an undirected graph with m vertices, Aut S its automorphism group, and L its combinatorial graph Laplacian. Assume that L has p distinct eigenvalues λ 1 , . . . , λ p and corresponding subspaces U 1 , . . . , U p . Then each U i is invariant under the first order action (5) of Aut S on R m .
+
+Proof. Since Aut S is a subgroup of the full group of vertex permutations , its action on R m is just v ↦→ σ ( v ) = P σ v with σ ∈ Aut S . L is a real symmetric matrix, so its eigenspaces U 1 , . . . , U p are mutually orthogonal and U 1 ⊕ . . . ⊕ U p = R n . Furthermore, v ∈ U i if and only if L v = λ i v . By definition, Aut S is the set of permutations that leave the adjacency matrix, and consequently the Laplacian invariant, so. In particular, P σ LP σ -1 = L for any σ ∈ Aut S . Therefore, for any v ∈ U i
+
+<!-- formula-not-decoded -->
+
+showing that σ ( v ) ∈ U i . Hence U i is an invariant subspace.
+
+The following Corollary puts this lemma to use, providing a surprisingly easy way of creating locally automorphism equivariant neurons. We define a Schur layer as a neural network module that applies this operation to every instance of a given subgraph in the graph, for example, every benzene ring in a molecule. For the sake of global permutation equivariance, the weight matrices for any given subgraph S must be shared across all instances of S across in the graph.
+
+Corollary 1. Consider a GNN on a graph that involves a neuron n S corresponding to a subgraph S with m vertices. Assume that the input of n S is a matrix T ∈ R m × c in , the rows of which transform covariantly with permutations of S and c in is the number of channels. Let L be the combinatorial Laplacian of S , U 1 , . . . , U p be the eigenspaces of L , and M i an orthognal basis for the i 'th eigenspace stacked into an R n × dim ( U i ) dimensional matrix. Then for any collection of learnable weight matrices W 1 , . . . , W p ∈ R c in × c out ,
+
+<!-- formula-not-decoded -->
+
+is a permutation equivariant linear operation.
+
+The spectral approach also generalizes to higher order permutation equivariance, in which case we can take advantage of the more refined two-level subspace structure implied by Theorem 2.
+
+Theorem 3. Let S , L and the M i 's be as in Corollary 1. Given a multi-index i = ( i 1 , . . . , i k ) ∈ { 1 , . . . , p } k , we define its type as the tuple n = ( n 1 , . . . , n p ) , where n j is the number of occurrences of j in i and we define I n as the set of all multi-indices of type n . Assume that the input to neuron n S is a k 'th order permutation equivariant tensor T ∈ R m × ... × m × c in , as defined in Section 3. For any given i , define the k 'th order eigen-projector
+
+<!-- formula-not-decoded -->
+
+where P i is a permutation map that canonicalizes the form of the projection, as defined in the Appendix. Let T ◦ W denote multiplying T by the matrix W only along its last dimension. Then for any collection of weight matrices { W i ′ , i ′ ∈ R c out × c in } the map
+
+<!-- formula-not-decoded -->
+
+is a permutation equivariant map.
+
+Corollary 1 and Theorem 3 give sufficient but not necessary conditions for equivariance w.r.t. the automorphism group. A discussion of the potential gap between our approach and the full group theoretical approach described in Section 3 can be found in Appendix D.
+
+## 5 Experiments
+
+To empirically evaluate our Schur layers, we implement the first order case described in Corollary 1 and compare it with other higher order MPNNs. Note that the theorem only gives the equivariant maps to transform local representation on a subgraph, i.e., ϕ : T in ↦→ T out where T in ∈ R m × c in and T out ∈ R m × c out are the inputs and output of a neuron corresponding to a specific subgraph. The rest of the message passing is conducted in the usual way, in particular, everything is implemented in the P -tensors framework [21].
+
+There are several design details about the architecture that are worth mentioning: (1) We chose cycles of lengths three to eight in most of the experiments and also added branched cycles to show our algorithm's scalability. The reason is that in the chemical dataset we used, cycles are the most important functional group to the property to be predicted, other subgraphs such as m -stars, and m -paths did not help the performance. (2) While having first-order representation on the cycles, we also maintain 0'th-order representation (i.e., scalars) on node and edges, as in [6, 21]. These node and edge representations capture more elementary information about the graph, such as k -hop neighborhoods, and are still important in higher order MPNNs. The representations pass messages with each other by intersection rule as defined in P -tensor framework. (3) As discussed in Appendix G, we view Schur layer's operation as a spectral convolution filter [5] applied to the subgraph and the number of channels to indicate how many times it expands the input feature to the output feature. The codes used to run our experiments can be found at https://github.com/risilab/SchurNet .
+
+## 5.1 Schur layer improves over Linmaps
+
+First of all, we want to show that considering more possible equivariant maps on the subgraph can indeed boost the performance. To this end, we performed controlled experiments to compare Schur layer with the equivariant maps w.r.t. S m (following [21] we called these linmaps ). To make a fair comparison, we use the same architecture including MLPs and message passing defined by P -tensor and only replace the equivariant maps used in Linmaps by what is defined in Corollary 1. We didn't compare with Autobahn [37] because it didn't use the P -tensor framework in the original paper and it's hard for us to implement the convolution w.r.t. automorphism group for all the subgraphs we chose. However we note that for the case of the cycles (see Table 4), the equivariant maps given by our approach are equal to that given by the group theoretical approach.
+
+We'll present the results on the commonly used molecular benchmark ZINC-12K [26] dataset in the main text. Results on TUdatasets as well as runtime comparison can be found in Appendix H. The task on ZINC-12K is to regress the log P coefficient of each molecule and the Mean absolute error (MAE) between the prediction and the ground truth is used for evaluation.
+
+We design experiments to compare Linmaps and Schur layers in various scenarios, to showcase the robustness of the improvement. Table 1 shows under various message passing schemes between edges and cycles, Schur Layer consistently outperforms Linmaps . Those are indications of the added expressive power of extra equivariant maps in Schur layer, and they're effective in various architectural design settings. Another ablation study regarding different cycle sizes can be found in Appendix H.
+
+Table 1: Comparison between Schur Layer and Linmaps with different message passing schemes. The message passing scheme is a design choice in P -tensor framework, where the user can set when two subgraph's representations communicate. The mostly common use case is to require at least k vertices in the intersection of two subgraphs for them to communicate. Experiments on ZINC-12k dataset and all scores are test MAE. Cycle sizes of {3,4,5,6,7,8,11} are used.
+
+| Layer          | Pass message when overlap ≥ 1   | Pass message when overlap ≥ 2   |
+|----------|----------|----------|
+| Linmaps (baseline) | 0 . 074 ± 0 . 008          | 0 . 074 ± 0 . 005          |
+| Schur layer        | 0 . 070 ± 0 . 006          | 0 . 071 ± 0 . 003          |
+
+Then we studied the possibilities of adding Schur layer in different places of higher-order message passing scheme. In table 2, we observed that the more condensed the higher-order feature is, the more improvement that the Schur Layer brings to us over Linmaps . We attribute the improvements of adding/replacing Schur layer in various scenarios over Linmaps the benefit gained from utilizing the
+
+subgraph structure and increased number of equivariant maps. We also tried other ways to use Schur layer, the result is summarized in Appendix G.
+
+Table 2: An experiment demonstrating different ways of using Schur layer. "Complete Schur Layer" means that we apply Schur Layer on the incoming messages together with the original cycle representation. "Linmap SchuLayer" means that we just apply the Schur Layer on the aggregated subgraph representation feature. "Simple Schur Layer" means we directly apply Schur Layer on the subgraph features without any preprocessing. We can observe that as the subgraph information diversifies, Schur layer tends to decouple the dense information better and results in better performance. The test MAE of Linmaps in this table is taken from [21].
+
+| Model          | Test MAE          |
+|----------|----------|
+| Linmaps          | 0 . 071 ± 0 . 004 |
+| Simple Schur -Net   | 0 . 070 ± 0 . 005 |
+| Linmap Schur -Net   | 0 . 068 ± 0 . 002 |
+| Complete Schur -Net | 0 . 064 ± 0 . 002 |
+
+## 5.2 Flexibility
+
+The other advantage of Schur layer is that it computes the feature transform only based on the subgraph's Laplacian, bypassing a difficult step of finding the automorphisms group and irreps of the subgraph it acts on. As discussed in the theory, Schur layer constructs equivariant maps only based on the subgraph's Laplacian and is applicable directly to any subgraphs, making the implementation much easier when different subgraphs are chosen than the group theoretical approach. This allows it to easily extend to any subgraph templates that're favorable by the user. To demonstrate this, we augment the subgraphs in the model by all the five and six cycles with one to three branches (including in total 16 non-isomorphic subgraph templates), comparing with baseline model where only the cycle itself is considered. Results can be found in Appendix G.
+
+## 5.3 Benchmark results
+
+Finally, and most importantly, we compare the Schur -Net to several other higher-order MPNNs 1 on ZINC-12k dataset and OGB-HIV dataset [23] in table 3. We included baselines of (1) classical MPNNs: GCN[28], GIN [40], GINE [24], PNA[11], HIMP [16] (2) higher order MPNNs: N 2 -GNN [14] 2 , CIN [6], P -tensors [21] (3) Subgraph-GNNs: DS-GNN(EGO+) and DSS-GNN(EGO+) [4], GNN-AK+ [46], SUN(EGO+)[17] (4) Autobahn [37].
+
+We find that Schur Net ranked second on ZINC-12K and outperformed all other baselines on OGBHIV dataset. This shows the expressivity of adding more equivariant maps by leveraging the subgraph topology. Furthermore, note that while N 2 -GNN outperforms Schur Net on ZINC-12K, it's a secondorder model whereas in our experiment, we only used first-order activation. Also, the partial reason Autobahn didn't perform well is in the original implementation, the authors didn't use P -tensor framework and used only a part of all possible linear message passing schemes. This shows to get the full power of equivariant maps w.r.t. subgraph automorphism group, we need to combine it with a general message passing framework between subgraphs as well.
+
+## 6 Limitations
+
+Unlike the representation theoretic approach, the spectral approach is not guaranteed the give the finest possible decomposition into invariant subspaces. Hence, equations like (9) do not necessarily define the most general possible automorphism-equivariant linear maps. In this paper we did not investigate from a theoretical point of view the extent of this gap. In general, being able to craft automorphismequivariant layers of any order for any types of subgraphs opens up a host of possibilities for making GNNs more powerful. Our experiments are limited to some of the simplest cases, such as exploiting cycles and edges. We also only used first order activations.
+
+1 A discussion of related work can be found in Appendix C.
+
+2 The works [31, 34] don't have results in those two dataset.
+
+Table 3: Comparison of different models on the ZINC-12K and OGBG-MOLHIV datasets.
+
+| Model          | ZINC-12K MAE( ↓ )   | OGB-HIV ROC-AUC(% ↑ )   |
+|----------|----------|----------|
+| GCN          | 0 . 321 ± 0 . 009   | 76 . 07 ± 0 . 97        |
+| GIN          | 0 . 408 ± 0 . 008   | 75 . 58 ± 1 . 40        |
+| GINE          | 0 . 252 ± 0 . 014   | 75 . 58 ± 1 . 40        |
+| PNA          | 0 . 133 ± 0 . 011   | 79 . 05 ± 1 . 32        |
+| HIMP          | 0 . 151 ± 0 . 002   | 78 . 80 ± 0 . 82        |
+| N 2 -GNN       | 0 . 059 ± 0 . 002   | -          |
+| CIN          | 0 . 079 ± 0 . 006   | 80 . 94 ± 0 . 57        |
+| P-tensors      | 0 . 071 ± 0 . 004   | 80 . 76 ± 0 . 82        |
+| DS-GNN (EGO+)  | 0 . 105 ± 0 . 003   | 77 . 40 ± 2 . 19        |
+| DSS-GNN (EGO+) | 0 . 097 ± 0 . 006   | 76 . 78 ± 1 . 66        |
+| GNN-AK+        | 0 . 091 ± 0 . 011   | 79 . 61 ± 1 . 19        |
+| SUN (EGO+)     | 0 . 084 ± 0 . 002   | 80 . 03 ± 0 . 55        |
+| Autobahn       | 0 . 106 ± 0 . 004   | 78 . 0 ± 0 . 30         |
+| Schur -Net     | 0 . 064 ± 0 . 002   | 81 . 6 ± 0 . 295        |
+
+## 7 Conclusions
+
+Enforcing equivariance to the automorphism group of subgraphs in higher order neural networks seemingly requires the use of advanced tools from group representation theory. This is likely a large part of the reason why automorphism-based architectures such as [37] are not used more commonly in practical applications. In this paper we have shown that a simpler approach based on spectral graph theory, following the same underlying logic as the group theoretic approach but bypassing having to enumerate all irreducible representations of the automorphism group, can lead to an architecture that is almost as expressive. Our algorithm, called Schur Nets, easily generalizes to higher order activations, as well as incorporating other types of side information such as vertex labels. In a practical setting, Schur Nets is easiest to deploy in conjunction with a message passing framework like P -tensors that hides the complexities of the higher order message passing component. The empirical performance of Schur Nets on the ZINC 12K dataset is superiror to all other comparable (non-transformer based) architectures that we are aware of.
+
+Given the similarity between the way we utilize the eigenspaces of the graph Laplacian and the so-called graph Fourier transform, our approach exposes heretofore unexplored connections between permutation equivariance and spectral GNNs such as [9, 22]. It also highlights the fact that while permutation equivariance is a fundamental constraint on graph neural networks, the key to building high performing, expressive GNNs is to reduce the size of the group that the network needs to be equivariant to as much as possible, using whatever side-information we can employ, whether that be the adjacency matrix, vertex degrees or something else.
+
+## Acknowledgements
+
+We would like to thank Andrew Hands for many valuable pieces of advice and much practical assistance that he has given to the experimental side of this project. We also gratefully acknowledge the Toyota Technological Institute of Chicago and the Data Science Institute at the University of Chicago for making their computational resources available for our use, as well as NSF MRI-1828629 for additional infrastructure that was used in the course in this project.
+
+## References
+
+- [1] Miltiadis Allamanis, Marc Brockschmidt, and Mahmoud Khademi. Learning to Represent Programs with Graphs. In International Conference on Learning Representations (ICLR) , 2018.
+- [2] Emily Alsentzer, Samuel Finlayson, Michelle Li, and Marinka Zitnik. Subgraph Neural Networks. In Advances in Neural Information Processing Systems (NeurIPS) , 2020.
+- [3] Peter W. Battaglia, Jessica B. Hamrick, Victor Bapst, and et al. Relational Inductive Biases, Deep Learning, and Graph Networks. In arXiv:1806.01261 , 2018.
+- [4] Beatrice Bevilacqua, Fabrizio Frasca, Derek Lim, Balasubramaniam Srinivasan, Chen Cai, Gopinath Balamurugan, Michael M. Bronstein, and Haggai Maron. Equivariant Subgraph Aggregation Networks. In International Conference on Learning Representations (ICLR) , 2022.
+- [5] Deyu Bo, Xiao Wang, Yang Liu, Yuan Fang, Yawen Li, and Chuan Shi. A Survey on Spectral Graph Neural Networks. arXiv preprint arXiv:2302.05631 , 2023.
+- [6] Cristian Bodnar, Fabrizio Frasca, Nina Otter, Yuguang Wang, Pietro Liò, Guido Montufar, and Michael Bronstein. Weisfeiler and Lehman Go Cellular: CW Networks. In Advances in Neural Information Processing Systems (NeurIPS) , 2021.
+- [7] Cristian Bodnar, Fabrizio Frasca, Yuguang Wang, Nina Otter, Guido F Montufar, Pietro Lió, and Michael Bronstein. Weisfeiler and Lehman go topological: Message passing simplicial networks. In International Conference on Learning Representations (ICLR) , 2021.
+- [8] Giorgos Bouritsas, Fabrizio Frasca, Stefanos Zafeiriou, and Michael M. Bronstein. Improving Graph Neural Network Expressivity via Subgraph Isomorphism Counting. In International Conference on Learning Representations (ICLR) , 2020.
+- [9] Joan Bruna, Wojciech Zaremba, Arthur Szlam, and Yann LeCun. Spectral Networks and Locally Connected Networks on Graphs. In International Conference on Learning Representations (ICLR) , 2014.
+- [10] Zhengdao Chen, Lei Chen, Soledad Villar, and Joan Bruna. Can Graph Neural Networks Count Substructures? In Advances in Neural Information Processing Systems (NeurIPS) , 2020.
+- [11] Gabriele Corso, Luca Cavalleri, Dominique Beaini, Pietro Liò, and Petar Velickovic. Principal Neighbourhood Aggregation for Graph Nets. In Advances in Neural Information Processing Systems (NeurIPS) , 2020.
+- [12] Pim de Haan, Taco S. Cohen, and Max Welling. Natural Graph Networks. In Advances in Neural Information Processing Systems (NeurIPS) , 2020.
+- [13] Nima Dehmamy, Albert-László Barabási, and Rose Yu. Understanding the Representation Power of Graph Neural Networks in Learning Graph Topology. In Advances in Neural Information Processing Systems (NeurIPS) , 2019.
+- [14] Jiarui Feng, Lecheng Kong, Hao Liu, Dacheng Tao, Fuhai Li, Muhan Zhang, and Yixin Chen. Extending the Design Space of Graph Neural Networks by Rethinking Folklore WeisfeilerLehman. In Advances in Neural Information Processing Systems (NeurIPS) , 2023.
+- [15] Yifan Feng, Haoxuan You, Zizhao Zhang, Rongrong Ji, and Yue Gao. Hypergraph Neural Networks. Proceedings of the AAAI Conference on Artificial Intelligence (AAAI) , 2019.
+- [16] Matthias Fey, Jan-Gin Yuen, and Frank Weichert. Hierarchical Inter-Message Passing for Learning on Molecular Graphs. In ICML Graph Representation Learning and Beyond (GRL+) Workhop , 2020.
+- [17] Fabrizio Frasca, Beatrice Bevilacqua, Michael M. Bronstein, and Haggai Maron. Understanding and Extending Subgraph GNNs by Rethinking Their Symmetries. In Advances in Neural Information Processing Systems (NeurIPS) , 2022.
+- [18] Justin Gilmer, Samuel S. Schoenholz, Patrick F. Riley, Oriol Vinyals, and George E. Dahl. Neural Message Passing for Quantum Chemistry. International Conference on Machine Learning (ICML) , 2017.
+- [19] Martin Grohe. Descriptive Complexity, Canonisation, and Definable Graph Structure Theory . Cambridge University Press, 2017.
+
+- [20] Rafael Gómez-Bombarelli, Jennifer N. Wei, David Duvenaud, José Miguel Hernández-Lobato, Benjamín Sánchez-Lengeling, Dennis Sheberla, Jorge Aguilera-Iparraguirre, Timothy D. Hirzel, Ryan P. Adams, and Alán Aspuru-Guzik. Automatic Chemical Design Using a Data-Driven Continuous Representation of Molecules. ACS Central Science , 2018.
+- [21] Andrew R. Hands, Tianyi Sun, and Risi Kondor. P-Tensors: A General Framework for Higher Order Message Passing in Subgraph Neural Networks. In Proceedings of The 27th International Conference on Artificial Intelligence and Statistics (AISTATS) , 2024.
+- [22] Mikael Henaff, Joan Bruna, and Yann LeCun. Deep Convolutional Networks on GraphStructured Data. arXiv:1506.05163 , 2015.
+- [23] Weihua Hu, Matthias Fey, Marinka Zitnik, Yuxiao Dong, Hongyu Ren, Bowen Liu, Michele Catasta, and Jure Leskovec. Open Graph Benchmark: Datasets for Machine Learning on Graphs. In Advances in Neural Information Processing Systems (NeurIPS) , 2020.
+- [24] Weihua Hu, Bowen Liu, Joseph Gomes, Marinka Zitnik, Percy Liang, Vijay S. Pande, and Jure Leskovec. Strategies for Pre-Training Graph Neural Networks. In International Conference on Learning Representations (ICLR) , 2020.
+- [25] Sergey Ioffe and Christian Szegedy. Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift. In International Conference on Machine Learning (ICML) , 2015.
+- [26] John J. Irwin, Khanh G. Tang, Jennifer Young, Chinzorig Dandarchuluun, Benjamin R. Wong, Munkhzul Khurelbaatar, Yurii S. Moroz, John Mayfield, and Roger A. Sayle. ZINC20-A Free Ultrlarge-Scale Chemical Database for Ligand Discovery. Journal of Chemical Information and Modeling , 2020.
+- [27] Diederik P. Kingma and Jimmy Ba. Adam: A Method for Stochastic Optimization. In International Conference on Learning Representations (ICLR) , 2015.
+- [28] T. N. Kipf and M. Welling. Semi-Supervised Classification with Graph Convolutional Networks. In International Conference on Learning Representations (ICLR) , 2017.
+- [29] Risi Kondor and Shubhendu Trivedi. On the Generalization of Equivariance and Convolution in Neural Networks to the Action of Compact Groups. In International Conference on Machine Learning (ICML) , 2018.
+- [30] Andreas Loukas. How Hard is it to Distinguish Graphs with Graph Neural Networks? In Advances in Neural Information Processing Systems (NeurIPS) , 2020.
+- [31] Haggai Maron, Heli Ben-Hamu, Hadar Serviansky, and Yaron Lipman. Provably Powerful Graph Networks. In Advances in Neural Information Processing Systems (NeurIPS) , 2019.
+- [32] Haggai Maron, Heli Ben-Hamu, Nadav Shamir, and Yaron Lipman. Invariant and Equivariant Graph Networks. In International Conference on Learning Representations (ICLR) , 2019.
+- [33] Christopher Morris, Nils M. Kriege, Franka Bause, Kristian Kersting, Petra Mutzel, and Marion Neumann. TUDataset: A Collection of Benchmark Datasets for Learning with Graphs. ICML Graph Representation Learning and Beyond (GRL+) Workhop , 2020.
+- [34] Christopher Morris, Martin Ritzert, Matthias Fey, William L. Hamilton, Jan Eric Lenssen, Gaurav Rattan, and Martin Grohe. Weisfeiler and Leman Go Neural: Higher-Order Graph Neural Networks. In Proceedings of the AAAI Conference on Artificial Intelligence (AAAI) , 2019.
+- [35] Ryoma Sato, Makoto Yamada, and Hisashi Kashima. Approximation Ratios of Graph Neural Networks for Combinatorial Problems. In Advances in Neural Information Processing Systems (NeurIPS) , 2019.
+- [36] Jean-Pierre Serre. Linear Representations of Finite Groups . Springer-Verlag, 1977.
+- [37] Erik Thiede, Wenda Zhou, and Risi Kondor. Autobahn: Automorphism-Based Graph Neural Nets. In Advances in Neural Information Processing Systems (NeurIPS) , 2021.
+- [38] Erik Henning Thiede, Truong-Son Hy, and Risi Kondor. The General Theory of Permutation Equivariant Neural Networks and Higher Order Graph Variational Encoders. arXiv:2004.03990 , 2020.
+- [39] Boris Weisfeiler and Andrei Leman. The Reduction of a Graph to a Canonical Form and the Algebra Which Appears Therein. Nauchno-Technicheskaya Informatsiya , 1968.
+
+- [40] Keyulu Xu, Weihua Hu, Jure Leskovec, and Stefanie Jegelka. How Powerful are Graph Neural Networks. In International Conference on Learning Representations (ICLR) , 2019.
+- [41] Naganand Yadati, Madhav Nimishakavi, Prateek Yadav, Vikram Nitin, Anand Louis, and Partha Talukdar. HyperGCN: A New Method for Training Graph Convolutional Networks on Hypergraphs. In Advances in Neural Information Processing Systems (NeurIPS) , 2019.
+- [42] Jiaxuan You, Jonathan Gomes-Selman, Rex Ying, and Jure Leskovec. Identity-Aware Graph Neural Networks. In Proceedings of the AAAI Conference on Artificial Intelligence (AAAI) , 2021.
+- [43] Manzil Zaheer, Satwik Kottur, Siamak Ravanbakhsh, Barnabas Poczos, Russ R. Salakhutdinov, and Alexander J. Smola. Deep Sets. In Advances in Neural Information Processing Systems (NeurIPS) , 2017.
+- [44] Muhan Zhang and Pan Li. Nested Graph Neural Networks. In Advances in Neural Information Processing Systems (NeurIPS) , 2021.
+- [45] Ruochi Zhang, Yuesong Zou, and Jian Ma. Hyper-SAGNN: A Self-Attention Based Graph Neural Network for Hypergraphs. In International Conference on Learning Representations (ICLR) , 2020.
+- [46] Lingxiao Zhao, Wei Jin, Leman Akoglu, and Neil Shah. From Stars to Subgraphs: Uplifting Any GNNwith Local Structure Awareness. In International Conference on Learning Representations (ICLR) , 2022.
+
+## A Additional details
+
+The purpose of the permutation map P i in Theorem 3 is to remap the tensor product space R dim ( U i 1 ) × ... × dim ( U i k ) × C into a canonical form so that those dimensions that correspond to i j = 1 are mapped to the first n 1 slots, those dimensions with i j = 2 are mapped to the second n 2 slots, and so on. Given the permutation τ : { 1 , 2 , . . . , k } → { 1 , 2 , . . . , k } that canonicalizes the indices in this way, P i is just the corresponding permutation map, i.e.,
+
+<!-- formula-not-decoded -->
+
+## B Proofs
+
+Proof of Theorem 1. Let { g ↓ U i : U i → U i } g ∈ G be the restriction of the action of G to U i . Since G fixes each U i , the action of G on the full space decomposes in the form
+
+<!-- formula-not-decoded -->
+
+Now since multiplication by scalars commutes with linear maps,
+
+<!-- formula-not-decoded -->
+
+for any u ∈ U and any g ∈ G .
+
+■
+
+Proof of Theorem 2. Each of the V i j subspaces is invariant, hence a homothety on each is an equivariant operation for the same reason as in Theorem 1. In addition, since G acts the same way on any pair of subspaces ( V i j , V i j ′ ) , any map of the form ξ i j,j ′ : V i j V i j ′ that is just a scaling is also equivariant. The composition of equivariant linear maps is an equivariant linear map, hence any map ϕ of the given form is equivariant. ■
+
+Proof of Theorem 3. For any multi-index i , the subspace Im ( M ⊤ i 1 ⊗ M ⊤ i 2 ⊗ . . . ⊗ M ⊤ i k ⊗ I c ) is invariant to permutations. Further after applying the permutation map P i , all such subspaces of the same type n , the action of S k on all such subspaces will be the same. Hence we can directly apply Theorem 2 to prove this theorem. ■
+
+## B.1 Alternative Proof for Corollary 1
+
+Here we give a more direct proof for Corollary 1.
+
+Proof. Without loss of generality, we assume c in = c out = 1 . Since the M i 's and λ i 's are eigenspaces and eigenvectors of the Laplacian L , L = M Λ M T , where M = [ M 1 , · · · , M p ] and Λ = diag ( λ 1 , · · · , λ m ) .
+
+The neuron n S is a linear transform ϕ : R m → R m , with ϕ ( T ) = Σ p i M i M T i TW i = MVM T T , where V = diag ( W 1 I n 1 , · · · , W p I n p ) . Here the W i 's are just scalars and I n i is an identity matrix of the same size as the corresponding eigenspace.
+
+Given a permutation σ ∈ S n , we want to show that ϕ σ ( σ ◦ T ) = σ ◦ ϕ e ( T ) , which is the definition of equivariance. Note that ϕ σ actually depends on σ , since we're doing eigenvalue decomposition on the Laplacian of the subgraph transformed by σ . This is the key to proving equivariance. We use e to denote the identity permutation.
+
+Now L σ = P σ LP T σ = M σ Λ M T σ , where M σ = P σ M , while the eigenvalues remain invariant after permutation and eigenspaces are transformed in the same manner as L . Thus,
+
+<!-- formula-not-decoded -->
+
+which is the desired result.
+
+Remark 1. The key to the proof is that the transform ϕ depends on an object transformed with permutation σ , specifically. graph Laplacian L . And all we need is that the object L is transformed equivariantly with σ . We can also add side informatino such as node labels or degrees to further constrain the automorphism group and increase the number of distinct eigenvalues. One easy way to do that is to set L ′ = L + V , where V = diag ( v 1 , · · · , v m ) captures the node labels or degrees, and build the Schur neuron n S from L ′ .
+
+## C Related works
+
+Higher order MPNNs have become a popular research area in graph representation learning since the seminal work by [32], which characterized the space of equivariant map w.r.t. S n for k 'th order tensors. The following works have mainly been divided into two streams, the one is based on k -Weisfeiler Leman test ( k -WL test) [39, 19], for instances, [31] proposed k -order graph neural networks that is as powerful as k -WL test; [34] proposed k -GNN to approximate (or simulate) k -WL test; [14] further designed a ( k, t ) -FWL+ hierarchy that extends the k -WL test and implemented the corresponding neuron version. A common feature of these approaches is they all work on all k -tuples of vertices for k -th order neural networks and thus make their space and time complexity at least θ ( n k ) .
+
+The other line of work is seeking ways to choose subgraphs in the graph, that are representative or contain important information, such as functional groups in a molecule. [7] chooses simplicial complex and [6] further extends this to any cell complex such as cycles. [21] incorporates any subgraph template and uses the equivariant maps defined [32] for local feature transform and devised a high order message passing scheme between those subgraphs, called P -tensor. This is arguably the most general framework in this line of work. This line of work is kind of independent of the k -WL test since the k -WL test is aimed to distinguish any pair of non-isomorphic graphs while chosen subgraphs are meant to work in some specific regions with domain prior. It's possible to still compare this kind of network with the distinguishing power of k -WL test, for example, [6] shows if they include cycles of size at most k (including nodes and edges), their network are as powerful as WL test. However, such comparisons are not very meaningful to indicate the expressive power of such a domain-specific approach. In our opinion, the ability to learn certain features (such as count cycles of certain sizes or learn some function related to specific functional groups) might be a better criterion. It'll be an interesting research direction to design suitable criteria for the expressive power of such higher order MPNNs in general.
+
+Our work follows this line of work since we're choosing specific subgraphs to learn representation on. But we utilize the subgraph's automorphism group to devise more possible equivariant maps (none of the aforementioned methods are built on the automorphism group). The only other work to our knowledge that uses the automorphism group is Autobahn [37], which is the first to introduce equivariance to the automorphism group to GNNs. The difference between our work and it lines twofold: (1) Autobahn theoretically introduces equivariant maps w.r.t. automorphism group via generalized convolution and Cosets, which is another group theoretical approach to construct equivariant maps, while we're using the decomposition to irreps (2) More importantly, Autobahn didn't mention a practical approach to construct those equivariant maps explicitly, hindering the utilization of more diverse subgraphs. In their experiments, they only use cycles of length five and six and paths of length three to six and construct the equivariant maps potentially by hand. In contrast, we give a simple and efficient way to construct equivariant maps w.r.t. automorphism group by EVD, which is very general to be used by any subgraph. Though our approach doesn't give the full set of equivariant maps, experiments show improvement over the traditional approach where only equivariant maps w.r.t. S n are used. We believe this algorithm, together with the group theoretical idea about decomposition R m k into stable subspaces and irreps are beneficial to the research community.
+
+There is a "third" type of higher order GNNs that is called Subgraph GNN, which deviates from the original definition of higher order MPNNs but can still be considered as higher order network. In particular, node-based GNNs such as [44, 46, 4, 42, 17] associate each node with a subgraph (by deleting the node, marking the node or extracting the EGO-network) and do MPNN on each subgraph,
+
+where they get the resulting representation X ∈ R n × n that can be considered as a 2nd order tensor representation on the original graph.
+
+## D Analysis of Schur layer
+
+First of all, we notice that the equivariant map characterized in 1 (or 3) may not be the full set of equivariant maps w.r.t. Aut S . Because (1) In the decomposition of U = R m k to eigenspaces U = U 1 ⊕ . . . U t , while U i is stable subspaces, it might not be irreducible and finer decomposition may be possible. In other words, there might be two irreps (isomorphic or not) corresponding to the same eigenvalue. (2) The maps defined by 1 didn't take into account the isomorphic subspaces corresponding to the same type of irrep , thus ignored the possible equivariant maps between V i j and V i j ′ . So, it is of interest to find out how much the gap would be between our approach and the group theoretical approach. We first look at some examples in the first-order case (see table 4).
+
+Table 4: Examples on EVD approach vs group theoretical approach towards # of equivariant maps w.r.t. Aut S . To calculate the decomposition of R m into irreps , one can calculate κ i = ( ϕ | χ i ) where ϕ and χ i is the character of the first-order action and ith irrep respectively, and ( | ) is inner product. Another quick approach is to use ϕ ( σ ) = ∑ k κ k χ k ( σ ) and look at some examples of σ to determine what the κ k should be.
+
+| Graph          | Aut S   |   # of distinct Eigenvalues ( Schur Layer) |   ∑ i ( κ i ) 2 irreps approach |   ∑ i κ i |
+|----------|---------|----------|----------|----------|
+| 6-cycle          | D 6     |          4 |          4 |         4 |
+| 5-cycle          | D 5     |          3 |          3 |         3 |
+| 4-cycle          | D 4     |          3 |          3 |         3 |
+| 3-cycle          | D 3     |          2 |          2 |         2 |
+| 5-star          | S 4     |          3 |          5 |         3 |
+| 4-star          | S 3     |          3 |          5 |         3 |
+| 3-path          | S 2     |          3 |          5 |         3 |
+| n-cliques          | S n     |          2 |          2 |         2 |
+| 5-cycle with one branch | S 2     |          6 |          20 |         6 |
+| 6-cycle with one branch | S 2     |          7 |          29 |         7 |
+
+We note that for cycles in the graph case, there's no gap. However, when we add branches to the cycle to make the automorphism group smaller, the multiplicities of the irreps increase, e.g., in 5-cycle with one branch case, S 2 only have two 1-dimensional irreps : trivial and sign representation of permutation, and the first-order action decompose to 4 copies of trivial and 2 copies of sign representation, gives in total 4 ∗ 4 + 2 ∗ 2 = 20 possible equivariant maps. However, note that # of irreps (counting multiplicities given by ∑ i κ i ) is equal to # of distinct eigenvalues, meaning that each eigenspace corresponds to an irreducible subspace and the decomposition of R m provided by eigenspaces is indeed a decomposition to the irreps in all of the cases listed in the table. Therefore, the multiplicities are the key reason for the gap between our EVD approach and the group theoretical approach, since our EVD approach can't capture the isomorphic property between subspaces. In principle, it is possible to find out which eigenspace is isomorphic to which, but in our current implementation, we didn't take this into account because we found out that only considering cycles is enough for a very good performance in the datasets we used.
+
+Generally, it's complicated to determine the gap between our EVD approach and the group theoretic approach, especially in higher-order cases (where merely determining the κ i 's is tricky), so we leave this into feature exploration.
+
+## E A brief overview about P -tensor framework
+
+The P -tensor framework is a framework for linear equivariant maps w.r.t. S n both between the same subgraph and across different subgraphs. It is built on the equivariant maps characterized by [32].
+
+Definition 1 ( P -tensors) . Let U be a finite set of atoms and D = ( x 1 , . . . , x d ) an ordered subset of U . We say that a k -th order tensor T ∈ R d × d ×···× d is a k -th order permutation covariant tensor (or P-tensor for short) with reference domain D if under reordering by τ ∈ S d D it transforms to
+
+<!-- formula-not-decoded -->
+
+## E.1 Message passing between P -tensors with the same reference domain
+
+Consider the equivariant maps sending T on D to T out on D . The space of equivariant maps w.r.t S m is characterized by [32]:
+
+Proposition 1. The space of linear maps ϕ : R dk 1 → R dk 2 that is equivariant to permutations τ ∈ S d is spanned by a basis indexed by the partitions of the set { 1 , 2 , . . . , k 1 + k 2 } .
+
+Then the authors designed a straightforward way to write the maps explicitly. Specifically, for each partition of the set { 1 , 2 , . . . , k 1 + k 2 } , there are three parts that determines the equivariant map: (1) summing over specific dimensions or diagonals of T in (2) transferring T in to T out by identifying indices of T in with indices of T out (3) broadcasting the result along certain dimensions of T out . These three operations correspond to the three different types of sets that can occur in a given partition P : (1) those that only involve the second k 2 numbers, (2) those that involve a mixture of the first k 1 and k 2 and (3) those only involve the first k 1 numbers. The type (1) - (3) corresponds to type (1) - (3) of operations with the dimensions in the sets.
+
+For example, in the case k 1 = k 2 = 3 , the P = {{ 1 , 3 } , { 2 , 5 , 6 } , { 4 }} partition corresponds to (a) summing T in along its first dimension (corresponding to { 4 } ) (b) transferring the diagonal along the second and third dimension of T in to the second dimension of T out (corresponding to { 2 , 5 , 6 } ) (c) broadcasting the result along the diagonal of the first and third dimensions (corresponding to { 1 , 3 } ). Explicitly, this gives the equivariant map:
+
+<!-- formula-not-decoded -->
+
+See table 5 for another example for k 1 = k 2 = 2 case.
+
+| P          | ϕ          | P          | ϕ          |
+|----------|----------|----------|----------|
+| {{1}, {2}, {3}, {4}} {{1}, {2}, {3,4}} {{1}, {2,4}, {3}} {{1}, {2,3}, {4}} {{2}, {1,4,3}} {{1,3}, {2,4}} {{1,2,3,4}} | T out a,b = ∑ c,d T in c,d T out a,b = ∑ c T in c,c T out a,b = ∑ c T in c,b T out a,b = ∑ c T in b,c T out b,a = T in b,b T out b,a = ∑ c T in c,b T out a,a = T in a,a | {{2}, {1,3,4}} {{1,2,3}, {4}} {{1,2,4}, {3}} {{1,2}, {3,4}} {{1,3}, {2,4}} {{1,4}, {2,3}} {{1,2,3,4}} | T out b,a = T in b,b T out a,a = ∑ b T in a,b T out a,a = ∑ b T in b,a T out a,a = ∑ c T in c,c T out a,b = T in a,b T out b,a = T in b,a T out a,a = T in a,a |
+
+Table 5: The B (4) = 15 possible partitions of the set { 1 , 2 , 3 , 4 } and the corresponding permutation equivariant linear maps ϕ : R k × k → R k × k .
+
+## E.2 Message passing between P -tensors with the different reference domains
+
+̸
+
+̸
+
+If T in has reference domain D 1 and T out has D 2 , with D 1 = D 2 and D 1 ∩ D 2 = ∅ . We could have more options corresponding to summing either over the intersection or over D 1 , and broadcasting either over the intersection or over D 2 . So the number of maps corresponging to partition of type ( p 1 , p 2 , p 3 ) is 2 ( p 1 + p 3 ) . Let D 1 ∩ D 2 = d ∩ , the previous example would have the following maps in D 1 = D 2 case:
+
+̸
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+## F Group Representation Theory Background
+
+Here, we explain in detail the decomposition of k -th order permutation to irreps of S m .
+
+Proposition 2. Let ρ λ , λ ⊢ m be the irreps of S m , U = R m k , σ ∈ S m act on U in the manner of equation 7, and suppose this action contains irreps ρ λ 1 , . . . , ρ λ p with multiplicities κ 1 , . . . , κ p , we have:
+
+<!-- formula-not-decoded -->
+
+where the first part gives the canonical decomposition of U and the second part further decompose each U i into irreducible subspaces, where V j i correspond to ρ λ i . In matrix form,
+
+<!-- formula-not-decoded -->
+
+where M is the orthogonal transformation for basis and we abuse ρ λ i ( σ ) to denote also the matrix of i-th irrep in the decomposition.
+
+If we take a closer look at M , we can find that since P ( k ) σ is under the standard basis of R m k , thus M is just the orthonormal basis of each U i (thus each V j i ) combined together, we denote M = ( M 1 , . . . , M p ) with M i a m k × ( d λ i ∗ κ i ) dimensional matrix, where d λ i is the degree of ρ λ i . Therefore, P ( k ) σ T becomes:
+
+<!-- formula-not-decoded -->
+
+The part (1) is a generalized Fourier transform of T to its Fourier components (coordinates under
+
+
+
+
+
+
+
+
+
+
+
+M
+
+M
+
+M
+
+1
+
+T
+
+T
+
+.
+
+2
+
+.
+
+.
+
+T
+
+p
+
+T
+
+T
+
+T
+
+B
+
+B
+
+1
+
+2
+
+.
+
+.
+
+.
+
+B
+
+p
+
+independently on ˆ T with each component B i ↦→    ρ λ i ( σ ) · · · 0 . . . . . . . . . 0 · · · ρ λ i ( σ )    B i . Note that there're κ
+
+act
+
+<!-- formula-not-decoded -->
+
+multiple of ρ λ i act the same on components of B i correspond to V j i , with a slight abuse of notation, we can think B i ∈ R d λ i × κ i (instead of R ( d λ i ∗ κ i ) × 1 ) and write this map as ρ λ i ( σ ) B i , the fact that the map by irrep ρ λ i act independently on each column of B i allow us to identify directly a set of equivariant maps by multiplying B i with matrix W i ∈ R κ i × κ i to the right, and using associativity of matrix multiplication: ρ λ i ( σ )( B i W i ) = ( ρ λ i ( σ ) B i ) W i . This gives in total of ∑ i κ 2 i independent equivariant maps, as stated in the main text. The last part of the above equation maps Fourier components to their original space. In short, we can write:
+
+<!-- formula-not-decoded -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+the orthonormal basis)
+
+ˆ
+
+T
+
+=
+
+≜
+
+, and the part (2) is the irreps
+
+ρ
+
+λ
+
+1
+
+, . . . , ρ
+
+λ
+
+p
+
+with the abuse of notation to rearrange elements in B i mentioned above.
+
+Then we present a detailed version of theorem 2 in the main text.
+
+Theorem 4 (Necessary and sufficient condition for equivariant map) . Let G be a finite group acting on a vector space U by the linear action { g : U → U } g ∈ G and assume the action can be decomposed into irreps ρ 1 , . . . , ρ p with multiplicities κ 1 , . . . , κ p and degree d i :
+
+<!-- formula-not-decoded -->
+
+Then ϕ : U → U is an equivariant map w.r.t. this group action if and only if ϕ is of the form:
+
+<!-- formula-not-decoded -->
+
+for some fixed set of coefficient { α i j,j ′ : i ∈ [1 , . . . , p ] , j, j ′ ∈ [1 , . . . , κ i ] } . In matrix form, suppose the matrix of g is R g under basis ( e i ) and dim ( U ) = n , and it decompose into:
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+Then ϕ : R n → R n is equivariant if and only if it is of the form:
+
+<!-- formula-not-decoded -->
+
+<!-- formula-not-decoded -->
+
+where T ∈ R n , W i ∈ R κ i × κ i is the fixed coefficients and B i rearrange to R d i × κ i when needed. The coefficients α i j,j ′ corresponds to ( W i ) j,j ′ . 3
+
+Proof. Sufficiency: firstly, α i j,j ′ τ i j → j ′ ( v ) is equivariant by definition of isomorphism map. And the equivariance of ϕ follows from the fact that sum of equivariant maps are equivariant.
+
+Necessity: consider ϕ on V i j and let W = Im ( ϕ | V i j ) the image of ϕ on V i j . Since ϕ ◦ g = g ◦ ϕ and g ( v ) ∈ V i j for any v ∈ V i j , we have g ( ϕ ( v )) = ϕ ( g ( v )) ∈ W , so W is stable under the action. Thus we can decompose W into irreducible spaces W = W 1 ⊕ . . . W p . Apply this decomposition to ϕ ( v ) for v ∈ V i j , we get:
+
+<!-- formula-not-decoded -->
+
+In other words ϕ k = Proj k ◦ ϕ where k is the projection of W onto W k (uniquely defined by the direct sum decomposition). Then ϕ k : V i j → W k and ϕ k ◦ g = g ◦ ϕ k . By Schur's lemma [36], for ϕ k = 0 , we must have W k isomorphic to V i j and ϕ k ( v ) = θ k τ V i j ,W k ( v ) . Since only V i j ′ is isomorphic to V i j , we have W k = V i k and ϕ k ( v ) = α i j,k τ j,k ( v ) , where τ j,k ( v ) is the isomorphic map sending V i j to V i k . Thus ϕ ( v ) = ∑ k ϕ k ( v ) = ∑ k α i j,k τ j,k ( v ) for v ∈ V i j .
+
+̸
+
+Finally, by linearity and U = ⊕ i,j V i j , the only possible equivariant function ϕ : U → U is given by 12.
+
+3 Similar discussions could be found in Section 4 of [38], but without a proof for necessity.
+
+Connection to matrix form: first note that the isomorphism τ i j → j ′ : V i j → V i j ′ is given by:
+
+<!-- formula-not-decoded -->
+
+where { u i j,l , l = 1 , . . . , κ i } and { u i j ′ ,l , l = 1 , . . . , κ i } are orthonormal basis for V i j and V i j ′ respectively such that the action of g is associated with matrix ρ i ( g ) . Therefore,
+
+<!-- formula-not-decoded -->
+
+Thus the matrix of ϕ under basis ( u i , i = 1 , . . . , p, j = 1 , . . . , κ i , l = 1 , . . . , d i ) is
+
+<!-- formula-not-decoded -->
+
+range to R d i × κ i ) and M is just the matrix to transform standard basis ( e i ) to basis ( u i j,l ) .
+
+## G Ways to Use Schur Neuron
+
+While Schur neuron can be viewed as a generic transform on any subgraph's first-order activation, we provide some thoughts and possibilities to instantiate it.
+
+In our experiment, we primarily view Schur neuron as a way to expand the feature of a subgraph. It can be viewed as an analogue to CNN's convolution filter and it's indeed a constrained version of spectral convolution filter [5] on the subgraph. In light of this, we call number of channels of Schur neuron as how many times it expand the output feature versus the input feature.
+
+̸
+
+Besides, we observe that the linear equivariant map described [32] is a special case of Schur neuron's map. The two possible linear map in [32] is (1) identity map, corresponding to take all weights W i = 1 (2) T → Σ i T i ✶ , where ✶ is all ones vector, corresponding to set W 1 = 1 , and W i = 0 for i = 1 since ✶ is eigenvector of any graph Laplacian with eigenvalue 0 . Consequently, we suggest to keep the two basic but important linear maps and augment them with Schur neuron. Empirically we verified this by an experiment only vary the number of channels. In figure 1, we see that further increase the number of channels beyond 4 wouldn't give us performance gain since cycle 5 and 6 only has 3 and 4 distinct eigenvalues respectively.
+
+Furthermore, we suggest that number of channels of Schur neuron be proportional or approximately equal to number of distinct eigenvalues of the subgraph it attach to. This is because the later is the number of independent linear maps for Schur neuron.
+
+Figure 1: A study on num of channels in Schur layer. Cycle 5 and 6 are included.
+
+<!-- image -->
+
+Additonally, we're wondering if we can use Schur layer in place of MLP's to provide a local structure aware transform to subgraph activations. Therefore, we tried to replace the 2-layer MLP with 2-layer
+
+Schur layer in the original Linmaps architecture. But it turns out this use case wasn't as effective as the use as learning new feature. Possibly because Schur layer learns feature itself while MLP transform the learned feature to some desired space.
+
+Table 6: Comparison about two use cases of Schur layer. Experiment on ZINC-12K.
+
+| Methods          |   Validation MAE |
+|----------|----------|
+| Linmaps          |          0.087 |
+| Schur layer (in place of MLP)         |          0.081 |
+| Schur layer (as learning new feature) |          0.076 |
+
+Finally, regarding flexibility as discussed 5.2, in table 7, we see that adding cycles with branches could provide the Schur Net with more detailed topological information, thus improving the performance. And the code for adding this actually only requires a single definition of those templates without modification to the neural network.
+
+Table 7: Flexibility of Schur layer. Experiments on ZINC-12k dataset. All other settings are the same. A smaller network than previous experiments was used.
+
+| Model          | Validation MAE    |
+|----------|----------|
+| Schur -Net on 5,6 cycles(baseline)          | 0 . 113 ± 0 . 008 |
+| Schur -Net on 5,6 cycles with up to three branches | 0 . 105 ± 0 . 001 |
+
+## H More experiment results
+
+We first start with some molecular datasets in TUdataset [33], which is a small but commonly used benchmark for GNN. In table 8, we see that Schur layer consistently improves over Linmaps in various bioinformatics and molecule datasets.
+
+Table 8: Comparison of Linmaps and Schur Layer performance on TUdatasets. Numbers are binary classification accuracy.
+
+| Dataset   | Linmaps    | Schur Layer   |
+|----------|----------|----------|
+| Proteins  | 74.7 ± 3.8 | 75.4 ± 4.8    |
+| MUTAG     | 89.9 ± 5.5 | 90.94 ± 4.7   |
+| PTC_MR    | 61.1 ± 6.9 | 64.6 ± 5.9    |
+| NCI1      | 82.1 ± 1.8 | 82.7 ± 1.9    |
+
+In table 9, we compare the runtime of our Schur layer and Linmaps , which shows the extra computational cost of Schur layer wasn't significant while being able to use more equivariant maps and achieving better accuracy.
+
+Table 9: Runtime per epoch with hyper-params num\_layers = 4, rep\_dim = 128, dropout = 0.0, batch\_size = 256, num of channels = 4, cycle\_sizes = 3,4,5,6,7,8. This shows Schur Layer didn't add much computational costs to Linmaps while being more expressive.
+
+| Dataset   | Linmaps   | Schur Layer   |
+|----------|----------|----------|
+| Zinc-12k  | 25.4s     | 27.6s         |
+| NCI1      | 9.5s      | 11.5s         |
+
+Another ablation study is perform on ZINC-12K dataset. In table 10, we see that Schur layer outperforms Linmaps when certain cycle sizes are considered, especially when only cycles 5 and 6 are chosen as subgraphs in the neural network.
+
+If we only do message passing, the best we can do
+
+2'o
+
+Table 10: Comparison between Schur Layer and Linmaps with different set of cycles chosen. Experiments on ZINC-12k dataset and all scores are test MAE.
+
+| Layer          | cycle size {5,6}   | cycle size {3,4,5,6}   |
+|----------|----------|----------|
+| Linmaps (baseline) | 0 . 139 ± 0 . 007  | 0 . 103 ± 0 . 011      |
+| Schur layer        | 0 . 114 ± 0 . 014  | 0 . 100 ± 0 . 009      |
+
+## I Architecture and experiment details
+
+In designing of our architecture, we design a message passing scheme similar to [21] and add Schur layer to each of the convolution layers. A visualization of our architecture can be found in Figure 2. In each convolution layer, we maintain 0th-order node representation ( h v ∈ R | V |∗ dim ) and edge representation ( h e ∈ R | E |∗ dim ) where we assume the input graph G = ( V, E ) . We further maintain 1st-order representation on cycles ( h D k ∈ R ( k ∗ ( c k ) ∗ dim ) ) where D k is cycle of length k and c k is the number of such cycle in G . We did message passing between node and edge representation the same as CIN [6]. The edge and cycle pass message with each other by tranfer maps described by [21] and then the incoming message to cycles as well as the original cycle representation is transformed by Schur layer. When updating the edge representation and cycle representation, we combine the original representation with the incomming message by either concatenation or ϵ -add described in GIN [40] and feed it into an MLP to get new representations.
+
+Figure 2: An example illustration of one layer of our model architecture. For an input graph, we first execute the standard node and edge level message passing and lift up the model to higher-order by forming higher-order representations on specific template graphs. In this example, we learned the representation on a Naphthalene. To further decouple its information, we may apply the SchurLayer on the template graphs that would potentially provide us insight about the graph. In this example, the 6 cycle, star graph, and path graph are all applying SchuLayer to learn the features locally. Through our architecture design, we can also incorporate the peripheral information. Automorphism group then helps us discover distinct key features such as non-symmetries, and we pass these aggregated features into the next layer of the architecture.
+
+<!-- image -->
+
+Hyperparameters For experiments on ZINC-12K and OGB-HIV, we tune representation dimension in { 32 , 64 , 128 } , and experiment on cycles up to length 18. In the best-performing model, we use representation dimension 128 and cycle lengths from 3 to 8 and number-of-layers is always 4 . For Schur layer, we tuned number of channels from 2 to 8 and found 2 , 4 are a suitable choice when it is used as an augmentation to Linmaps . For MLPs, we either use 2 to 3 layers depending on how dense the input's information is. We always use a batchnorm [25] after the Linear layer and then do ReLu activation. For training hyperparameters, we use an init learning rate of 0 . 01 and use ReduceLROnPlateau scheduler in PyTorch with patience of 10 or 30. We use Adam optimizer [27] for all trainings. We train for 500 or 1000 epochs depending on model size. In particular, in table 10, the models have representation dimension 32, so it is trained to only 500 epochs. All other models are trained 1000 epochs. A batch size of 256 is used for all models. All results are run at least three times to calculate the standard deviation.
+
+For experiments on TUdataset (table 8), we chose a set of hyper-params by intuition (we didn't tune them because this experiment is to demonstrate the effectiveness of Schur layer and compare Schur layer with Linmaps under the same experiment setting. we don't aim to compare with Sota on this experiment). Hyper-params for both Schur Layer and Linmaps : num\_layers = 4, rep\_dim = 32,64, dropout = 0.5, batch\_size = 32,128, lr = 0.01, num of channels = {2,4}, cycle sizes = 3,4,5,6. We're training with StepLR scheduler where reduce lr to 1/2 after every 50 epochs, with a total of 300 epochs. The hyperparams weren't tuned, we just chose a smaller value for a smaller dataset and a bigger value for bigger datasets by rule-of-thumb. Linmaps is implemented on our own according to the description of P -tensor, then Schur Layer replaces Linmaps operation by Schur operation. We follow the evaluation strategy specified in [40].
+
+Used Compute Resources Experiments are all run on one Tesla L4 from PyTorch Lightning Workspace and one NVIDIA RTX 4090. The code is implemented in PyTorch. For the running time, on the ZINC-12k dataset, it takes around 8 . 53 ± 1 . 2 hours to finish training for 1000 epochs with 4 layers and 128 dimension representation on an NVIDIA RTX 4090. We're running on a desktop with a Ryzen 7900 CPU and 64GB of RAM.
+
+##

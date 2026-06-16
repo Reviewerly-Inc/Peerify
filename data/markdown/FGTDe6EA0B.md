@@ -1,0 +1,335 @@
+## Language Generation in the Limit
+
+## Jon Kleinberg
+
+Departments of Computer Science and Information Sciene Cornell University
+
+Ithaca NY
+
+## Abstract
+
+Although current large language models are complex, the most basic specifications of the underlying language generation problem itself are simple to state: given a finite set of training samples from an unknown language, produce valid new strings from the language that don't already appear in the training data. Here we ask what we can conclude about language generation using only this specification, without further assumptions. In particular, suppose that an adversary enumerates the strings of an unknown target language L that is known only to come from one of a possibly infinite list of candidates. A computational agent is trying to learn to generate from this language; we say that the agent generates from L in the limit if after some finite point in the enumeration of L , the agent is able to produce new elements that come exclusively from L and that have not yet been presented by the adversary. Our main result is that there is an agent that is able to generate in the limit for every countable list of candidate languages. This contrasts dramatically with negative results due to Gold and Angluin in a well-studied model of language learning where the goal is to identify an unknown language from samples; the difference between these results suggests that identifying a language is a fundamentally different problem than generating from it.
+
+## 1 Introduction
+
+The recent advances in large language models (LLMs) have been remarkable, sparking active lines of theoretical work into their performance. These investigations implicitly revolve around two fundamental questions: how do we formally reason about the effectiveness of LLMs; and within such a framework, what are the core ideas at a mathematical level that enable their performance?
+
+Answers to these questions must begin by formalizing the specification for what a generative algorithm for language should be doing. Here, we propose starting from a very basic, assumption-free, statement for such a specification: there is an unknown target language L , over time the algorithm sees a sequence of strings from L , and eventually we would like the algorithm to generate new strings from L that it has not seen before. 1
+
+Viewed this way, it is also clear why it seems so remarkable for LLMs to be doing well at such a problem. The fully general statement of the problem feels unsolvable: if we know nothing about the unknown target language L , then how can a generative algorithm reliably produce valid strings from L that it hasn't seen before?
+
+1 We will formalize these concepts more precisely below, but for now we can think of a language as simply any set of strings over a fixed alphabet; for example, the strings of the language could be the set of all grammatical sentences (or all well-formed expressions) according to a given grammar.
+
+## Sendhil Mullainathan
+
+Booth School of Business University of Chicago Chicago IL
+
+Language Learning in the Limit. In fact, there is a well-established formalism that allows us to phrase this point precisely: the classical model of language learning in the limit, formulated by Mark Gold in 1967 and fully characterized by Dana Angluin in 1980 [6, 2]. In this model, there is an unknown language K that is known only to be produced by one of a list of candidate representations R 1 , R 2 , R 3 , . . . , where L i is the language produced by representation R i . We can think of this list of representations as the set of all possible context-free grammars, or the set of all possible finite automata, or the set of all Turing machines with a fixed space bound, or any other generative model that produces strings; in fact, the formal result is much more general than this, in that it is sufficient to suppose that the unknown language K simply comes from a countable list of candidate languages L 1 , L 2 , L 3 , . . . , and we can dispense with explicit representations altogether. 2
+
+In the Gold-Angluin model, an adversary enumerates the strings of K one by one, and the algorithm is required after each new string to guess a language L i from the list such that L i = K . If there is some finite step t after which the algorithm's guess is always correct, then we say the algorithm has identified K in the limit . Gold proved that this is impossible in general, even for simple language families such as the regular languages (i.e. those produced by finite automata), and Angluin characterized precisely those families for which it is possible, further establishing how limited they are [1, 2]. Note, crucially, that in the Gold-Angluin model, the adversary enumerates strings in K , but does not provide examples of strings that do not belong to K , nor does it allow the algorithm to ask questions about a string's membership in K ; their point with this formalism was to focus on cases where an agent tries inferring a language purely from seeing a sufficient number of examples of strings that belong to the language. (In Section A.1, we provide a self-contained proof of the negative result for identification in the limit; while not strictly necessary for our results, we find it provides useful background and context for the problem.)
+
+Our Results: Language Generation in the Limit. These negative results of Gold and Angluin feel intuitive - how should we be able to identify a language from a finite sample when we are allowed to make essentially no assumptions about its structure? Because of this intuition, both via the Gold-Angluin model and for more informal reasons as well, the focus in language generation has naturally turned to distributional assumptions; one posits that large language models are so effective because they are able to exploit distributional probabilities of language, and from a finite set of samples they are able to estimate conditional probabilities of strings with increasing accuracy. In this way, the question moves from adversaries to probability distributions, and one seeks explanations for the effectiveness of LLMs through underlying probabilistic models.
+
+In this paper, we offer a sharply different view: we show that in the Gold-Angluin model of adversarially produced examples, language generation is always possible. We will provide full details on the result and its proof beginning in the next section, but the key point at a high level is that even in an adversarial model with an unknown language K , language generation is a fundamentally different task than language identification: where identification asks an algorithm to eventually name a language L i = K after seeing a large enough finite sample S from K , generation instead asks an algorithm to eventually output strings in K -S after seeing a large enough S from K . Our main result is that this difference in specifications leads to dramatic differences in what is possible in the limit; whereas the Gold-Angluin results establish that identification in the limit is impossible except in highly constrained cases, we show that generation in the limit is possible for every countable list of candidate languages.
+
+General Connections to Language Modeling. Our approach emphasizing theoretical properties of language generation and worst-case guarantees, in the style of the Gold-Angluin model, is a source of limitations but also a source of generality; it is therefore important to discuss how we draw stylized insights about language modeling from our theoretical formalism. Clearly, methods to design large language models in practice make extensive use of the empirical distributional properties of language, as they should. Our results don't question this design methodology; when there are genuine empirical regularities in the training data, there is no reason not to use them. Rather, our results argue that if we are looking for the essential reasons why language generation is tractable, we do not fundamentally require any empirical regularities, or indeed any probabilistic assumptions at all; there is instead a formal sense in which language generation - unlike broader learning tasks such as language
+
+2 In this more general view, we will assume that the family of languages is presented simply via a black box that for a string w and an index i can answer the question, 'Is w ∈ L i ? '
+
+identification - is possible even against an adversary presenting positive training examples in a worst-case fashion. In some essential way, the generation problem is therefore different from these other learning tasks in crucial ways that more detailed formalisms may potentially obscure.
+
+Despite the generality of the model, producing the generation algorithm that proves our main theorem makes use of subtle structural properties of the given list of candidate languages. Again, we defer any detailed description to the subsequent sections, but the idea at a high level is to maintain a sequence of 'provisional languages' among the candidate languages that are consistent with the finite sample S from K seen so far, and to continually refine this sequence of provisional languages as the adversary adds more strings to the sample S . Since the Gold-Angluin result says that the algorithm can never be sure which is the true language K , there is a sense in which this refinement process essentially needs to continue indefinitely, and in general it leads the algorithm to generate from provisional languages that may be increasingly 'thin' subsets of K . This does not cause trouble for the specification of language generation, since it is acceptable to produce any unseen string from K , but it does mean that while the algorithm is able to eventually produce an infinite sequence of unseen strings from K , in general it might do so from a narrow part of K .
+
+This property of the solution in the presence of an adversary suggests interesting connections to the problem of generation in practice as well. In particular, any method for generation has to deal with an underlying validity problem -producing valid outputs - and an underlying breadth problem -producing outputs that represent the full range of valid outputs in some reasonable way. The breadth problem is notoriously difficult, and it manifests itself in numerous ways in the methodology of machine learning and generative models. The approach that proves our main result helps illustrate the tension between validity and breadth even in settings with worst-case assumptions rather than probabilistic ones, and this tension shows up in both the early phases of our algorithm's execution and the later phases. In the early phases, before the algorithm has refined its provisional language sufficiently, it is generating too broadly and producing strings that are not part of the target language K -an analogue at a high level of a kind of hallucination in which the generated strings belong to some consistent candidate language, but not to the actual target language [7, 8, 11]. In the later phases, on the other hand, the algorithm continuously shrinks its range of possible outputs so as to ensure that they will be contained within K -sacrificing validity for breadth in a manner analogous to the issues that arise in the problem of mode collapse for generative models [3, 4]. Our model therefore suggests interesting questions about the fundamental trade-offs that may exist between validity and breadth even in settings without an underlying probabilistic model.
+
+## 2 Formal Model and Results
+
+We now provide a formal description of the model and the statement of our results. To begin with, we have a countable list of candidate languages C = { L 1 , L 2 , L 3 , . . . } , where each L i is a subset of some countable set U . All we assume about the list of languages is that it is specified through a black box that can answer questions of the form 'Is w ∈ L i ?' for any string w ∈ U and language L i ∈ C . (If the reader finds it helpful for concreteness, they can consider the results that follow in the context of a specific list of languages C , such as the set of all context-free languages or the set of all regular languages; but everything we say applies to general collections of languages.) We will allow the collection C to contain repetitions, in that we may have L i = L j for different indices i and j . We will assume that all the languages L i are infinite; while the original Gold-Angluin framework did not require this, it becomes important in specifying the generation problem: if we require an algorithm to output unseen strings forever, then this is not possible from a finite language, where the algorithm would eventually run out of new strings to generate.
+
+An adversary and an algorithm now play the following game. The adversary chooses a language K from C without revealing it to the algorithm, and it begins enumerating the strings of K one by one over a sequence of steps t = 1 , 2 , 3 , . . . . The adversary can repeat strings in its enumeration, but crucially, for every string w ∈ K , there must be at least one time step t in which w appears. Let S t be the set of strings that the adversary has enumerated in steps 1 through t .
+
+Identification and Generation. In this framework, we can now specify both the Gold-Angluin problem of identification and the contrasting problem of generation that we study in this paper.
+
+- Identification (from [6, 2]: In each step, the algorithm observes S t and must output an index i (its guess for the true language K ). The algorithm identifies K in the limit if there is some t ∗ such that for all steps t ≥ t ∗ , the algorithm's guess in step t is an index i for which L i = K .
+- Generation (from the present paper): In each step, the algorithm observes S t and must output a string a t (its guess for an unseen string in K ). The algorithm generates from K in the limit if there is some t ∗ such that for all steps t ≥ t ∗ , the algorithm's guess a t belongs to K -S t .
+
+A key point in both problem formulations is that the algorithm is not told if its guesses are correct.
+
+We know from the Gold-Angluin results that there is no algorithm that can achieve identification in the limit for an arbitrary countable collection C of languages (or even for specific countable collections, like the set of all regular languages or the set of all context-free languages). Our main result is a dramatically different answer for language generation; it is possible for every countable collection:
+
+(2.1) There is an algorithm with the property that for any countable collection of languages C = { L 1 , L 2 , L 3 , . . . } , and any enumeration of one of these languages K , the algorithm generates from K in the limit.
+
+A Result for Finite Collections. We prove a second result as well, focusing on the variant of the problem in which the collection of languages C is finite. In this case, it follows from Angluin's characterization that every finite collection C allows for identification in the limit. Given this, what more might we ask for? A natural question is whether there is a uniform bound on the number of samples needed to ensure that the algorithm can correctly identify the true language K : for any finite collection C , is there a bound t ( C ) and an algorithm with the property that after seeing any t ( C ) distinct strings from K , the algorithm is guaranteed to report K as its guess for the true language?
+
+It is easy to see that for the Gold-Angluin model of learning, this is not possible. For example, supopse that C is the collection consisting of two languages L 1 and L 2 : L 1 consists of all possible strings, and L 2 consists of all strings of even length. Suppose there were a bound t ( C ) and an algorithm that was guaranteed to guess correctly after seeing t ( C ) distinct samples. Then an adversary could present t ( C ) distinct strings of even length, and then ask the algorithm to guess whether the true language is L 1 or L 2 : if the algorithm guesses L 2 at this point, then the adversary could announce that the answer is L 1 , and conversely if the algorithm guesses L 1 . This does not prevent the algorithm from learning the true language in the limit (since the adversary must eventually output an odd-length string if the true answer is L 1 ); but there is no fixed bound t ( C ) by which this can be guaranteed.
+
+However, for the problem of generation with a finite collection of candidate languages, we can provide this much stronger type of uniform bound, via an algorithm that generates correctly after seeing a finite sample whose size t ( C ) is specified at the outset. In fact, we can achieve more: after seeing this finite sample, the algorithm can generate an infinite sequence of unseen elements from the true language.
+
+(2.2) There is an algorithm with the property that for any finite collection of languages C , there is a number t ( C ) , such that for any language K in C , and any sequence S of at least t ( C ) distinct elements from K , the algorithm can produce an infinite sequence of distinct strings from K -S .
+
+In subsequent work building on the present paper, Raman and Tewari [10] have recently proved further results about the type of uniform generation that we consider in (2.2), when it is possible to put an a priori bound t ( C ) on the number of distinct strings an algorithm needs to see from K before it can be guaranteed to begin generating unseen strings from K . They also consider variants of this definition, situating their analysis in the framework of classical learning theory.
+
+Extensions and Generalizations. Following these two main results in our basic model of generation, we provide (in Section 7) the following generalization of the model. Specifically, a familiar issue from language generation applications is the role of the prompt : a user provides an input string p , and a generation algorithm is then supposed to produce a 'continuation' string c to come after the prompt, so that the concatenation of p and c is a valid utterance. We offer an extension that incorporates the notion of prompting, while maintaining the basic structure of the model, and we show how to formulate and prove a generalization of our first main result (2.1) in a setting where at each time step the adversary is allowed to specify a prompt that must be completed.
+
+## 3 An Approach to Generation that Doesn't Work
+
+The following section is important, because it describes an approach that is arguably the most natural non-trivial attempt at achieving language generation in the limit. It seems at first seems to solve the problem directly, but in fact it fails for a deep reason that is important to understand, since it motivates the more involved solution that follows.
+
+The strategy is to move through the list of languages C = { L 1 , L 2 , L 3 , . . . } in order, treating each language L i as a hypothesis for K until the sample S t proves otherwise. That is, we start with L 1 , and we generate strings from L 1 -S t until we encounter (if ever) a step t in which S t glyph[negationslash]⊆ L 1 . At this point we know that L 1 cannot be the true language K , and so we continue the process from L 2 . The nice idea that underpins this strategy is that the true language K is equal to L z for some index z . (Since C can contain repetitions, K might appear several times, but we can take L z as the first appearance.) So if our process were to reach L z at some step t ∗ , it would never move on from L z , and so we would be generating from K -S t for all t ≥ t ∗ .
+
+Unfortunately, there is a deep problem with this approach: there may be a language L i ∈ C with the property that L i comes before L z and L i properly contains L z (that is, i &lt; z , and L z glyph[subsetnoteql] L i ). In this case, our procedure would stop at the first such L i forever, since it would never encounter a string in S t that didn't belong to L i . And when it generated from L i -S t , there is no guarantee that it would choose strings from L z .
+
+This problem is not easily avoided, since if this approach worked as written, it would also solve identification in the limit, which we know is impossible. So we need to extract some of the useful ideas from this failed approach - in particular, the trick that K appears at some finite point in the list C , as the language L z -but add important further ideas as well. Specifically, if the algorithm is maintaining hypotheses for the true language K over time, it can provably never know whether its current hypothesis is correct; instead, it must be always moving further down the collection of languages, potentially considering languages that are not K , but in such a way that it is eventually always generating from K -S t . This is what our proof beginning in the next section will have to accomplish.
+
+## 4 Generation in the Limit via a Function
+
+We prove our main result in two parts. We first give a method for language generation in the limit that is not concerned with the computational power required by the agent performing the generation. Thus, rather than an algorithm to generate the string, we ask whether we can construct a function f C based on the given language collection that maps a finite set of strings to a new string; this function takes the strings S t seen so far and outputs a string f C ( S t ) intended to be in K -S t . We will prove the following:
+
+(4.1) For every countable collection of languages C , there is a function f C from finite subsets of U to elements of U , such that for every enumeration of a language K ∈ C , there is a t ∗ such that for all t ≥ t ∗ , we have f C ( S t ) ∈ K -S t .
+
+Note that while this positive result is not concerned with the computational power required to evaluate f C , it already contains the core contrast with language identification, which remains impossible even if we simply ask for a function f C . In the next section, we will then go on to prove (2.1) by using an algorithm that only performs standard computational steps and membership queries of the form ' w ∈ L i ?'
+
+Minimal and critical languages. As before, we will suppose z is an index such that L z = K . We say that a language L i is consistent with the sample at step t if S t ⊆ L i . An important idea, which is implicit in our discussion of the failed approach at the end of Section 2, is that if L i ⊆ L j are both consistent with S t , then it is safer for an algorithm to generate from L i than from L j : if w ∈ L j -S t then we must also have w ∈ L i -S t . This suggests that it would be useful to find consistent languages that are minimal with respect to inclusion: we would say that L is minimal if L ∈ C is consistent with S t , and also L ⊆ L ′ for every L ′ ∈ C that is consistent with S t . Unfortunately, this is too much to ask for, since there exist instances of the problem for which there might not be any languages that are minimal with respect to inclusion. (In a finite collection of language there would need to be a minimal language, but it is easy to construct infinite collections without one.)
+
+Therefore, we define a related concept that only involves examining the inclusion of a given language with respect to a finite set of other languages. Specifically, we look for languages L n that are consistent with S t in a given step t , such that L n is a subset of every consistent language that precedes it in the indexing of C . We will say that such a language is critical at step t . To define this formally, we first let C n denote the finite collection of languages { L 1 , L 2 , . . . , L n } . We now have the following definition.
+
+(4.2) A language L n is critical at step t if L n is consistent with S t , and for every language L i ∈ C n that is consistent with S t , we have L n ⊆ L i .
+
+Properties of critical languages. At any given step t , there is at least one language consistent with S t , since the language L z = K is always consistent with S t . It follows that there is also at least one critical language at any step t : for any t , the consistent language L i with the lowest index i must be critical at step t , as it is the only consistent language in C i .
+
+Note that there can be choices of t for which the language L z = K is not critical at step t . But a crucial fact is that L z will eventually become critical at some step t and remain critical forever after that. For reasons of space, we provide complete proofs for this and all subsequent results in the Appendix, in this case in Section A.2.
+
+(4.3) There exists a time step t + such that for all t ≥ t + , the language L z is critical at step t .
+
+There can be multiple critical languages at a given step t ; for example, if on the step t + in (4.3) the first consistent language L i is not equal to L z , then both L i and L z will be critical at step t + . Despite the potential multiplicity of critical languages, the collection of all critical languages at step t has a useful nested structure: L i and L j are both critical at step t , with i &lt; j , then since L j is contained in all consistent languages that precede it, in particular it is contained in L i . We therefore have:
+
+(4.4) Let i &lt; j , and suppose that L i and L j are both critical at step t . Then L j ⊆ L i .
+
+A function for generation in the limit. At a given step t , suppose that the critical languages are L n 1 , L n 2 , L n 3 , . . . where n 1 &lt; n 2 &lt; n 3 &lt; · · · . (This list of critical languages might be finite or infinite.) Then (4.4) tells us that this sequence is nested by inclusion: L n 1 ⊇ L n 2 ⊇ L n 3 ⊇ · · · .
+
+By (4.3) we know that the language L z will eventually appear on this nested list from some step t + onward, but even then we do not know which index n i it corresponds to at any given step t ≥ t + . Indeed, to recall a point from earlier, the Gold-Angluin results for learning in the limit tell us that we can never know for sure which index corresponds to L z . But we now arrive at the crucial point, which is that beyond some finite index, all the critical languages are subsets of L z , so it is safe to generate from any of them.
+
+Given this, we are prepared to construct our function f C .
+
+(4.5) f C ( S t ) is defined as follows. We first identify all languages in C t that are critical at step t . (If no such languages exist - which can only happen if none of them are consistent with S t -we define f C ( S t ) arbitrarily.) Among these critical languages, let L n t be the one with the largest index n t ≤ t . We define f C ( S t ) to be the lowest-indexed element of L n t -S t .
+
+Finally, to establish our initial claim (4.1), it is sufficient to prove the following (in Section A.2):
+
+(4.6) For any language L z ∈ C and any enumeration of L z , there is a t ∗ such that for all t ≥ t ∗ , we have f C ( S t ) ∈ L z -S t .
+
+As a final note, we observe that the current formulation of f C allows it to generate the same string more than once, provided that this string is in K -S t . However, it is not hard to modify f C so that it generates a different string each time, essentially just by defining it so that it generates the lowest-indexed element that it hasn't already generated.
+
+The computational power required to produce f C . Our plan was to construct f C without worrying about the computational power required to do so (and recalling that for comparison, in the corresponding problem of identification in the limit, no function f C achieving identification could exist regardless of the computational power required to produce it). Now that we've constructed an appropritate f C , we can ask what was in fact required computationally.
+
+In addition to standard computational steps and membership queries of the form ' w ∈ L i ?', the definition of f C ( S t ) requires that we identify the critical languages in C t . From the definition, we can do this provided we can answer a finite number of subset queries of the form ' L i ⊆ L j ?'. So an algorithm augmented with the power to perform such subset queries can perform generation in the limit.
+
+In the next section, we will show how to remove the necessity for subset queries, so that generation in the limit can be performed by an algorithm using only standard computational steps and membership queries.
+
+## 5 Generation in the Limit via an Algorithm
+
+We now prove (2.1) by giving an algorithm that generates in the limit for any countable collection of languages C , using only standard computational steps and membership queries of the form ' w ∈ L i ?'
+
+The set of possible strings U can be written as U = { u 1 , u 2 , u 3 , . . . } , and for simplicity we will also use the language of the positive integers to describe U , treating u i as the number i . In an enumeration of the true language L z = K , let the sequence of strings that are enumerated step by step be denoted w 1 , w 2 , w 3 , . . . .
+
+Extending definitions to finite subsets of languages L i . One important idea in designing the algorithm is to work with finite subsets of the languages in C , gradually expanding the size of these subsets. Thus, for a language L i ∈ C and a number m , we will use L i [ m ] to denote the finite set L i ∩ { 1 , 2 , 3 , . . . , m } . We extend definition (4.2) of critical languages from the previous section to handle finite subsets.
+
+(5.1) Let t and m be positive integers. A language L n is ( t, m ) -critical if L n is consistent with S t , and for every language L i ∈ C n such that L i is consistent with S t , we have L n [ m ] ⊆ L i [ m ] .
+
+Since L n ⊆ L i implies that L n [ m ] ⊆ L i [ m ] for any m ≥ 1 , we have the following analogue of (4.3).
+
+(5.2) There exists a time step t + such that for all t ≥ t + and all m ≥ 1 , the language L z is ( t, m ) -critical.
+
+The analogue of (4.4) also still holds with this definition, using the same proof.
+
+(5.3) Let i &lt; j and suppose that L i and L j are both ( t, m ) -critical. Then L j [ m ] ⊆ L i [ m ] .
+
+Finally, there is a basic monotonicity property of ( t, m ) -criticality that is useful to write down explicitly; we give the proof in Appendix A.3.
+
+(5.4) Suppose that L n is ( t, m ) -critical, and m ′ &lt; m . Then L n is ( t, m ′ ) -critical.
+
+## 5.1 An algorithm for generation in the limit
+
+We now describe an algorithm for generation in the limit. As before, S t = { w 1 , w 2 , . . . , w t } is the subset of K enumerated through step t , treating the w i as integers. We will consider the languages in C t in step t , and maintain an auxiliary variable m t , roughly corresponding to how large a prefix L i [ m ] we consider from each language L i ∈ C t .
+
+At the start of step t , we set m t = max( m t -1 , w t ) ; note that by induction this implies m t ≥ max t ′ &lt;t w t ′ . (Later we will increment m t , so we should think of it as a variable in the algorithm whose value can be modified.) We then determine which L i ∈ C t are consistent with S t ; note that by the definition of m t , it is sufficient to perform membership queries for only the finite set of elements in L i [ m t ] in order to do this. If there are no consistent languages in C t , then we output a string arbitrarily.
+
+Otherwise, there is at least one language consistent with S t , and so there is at least one ( t, m ) -critical language for any choice of m , since the first consistent language is ( t, m ) -critical for all m . Our goal is to imitate the plan from (4.5) and generate a new string from the highest-indexed critical language. But to do this, we have to find a new string, and this will in general require performing additional membership queries.
+
+Generating a string. For any choice of m , let n t ( m ) be the maximum index of a ( t, m ) -critical language from C t ; as noted above, n t ( m ) is well-defined since we are in the case where at least one language in C t is consistent with S t , and so the first consistent language is ( t, m ) -critical for all m . We now search for a string to generate as follows.
+
+We maintain a counter m that begins at m t and gets incremented iteratively, with each iteration doing the following:
+
+- Increment m by 1.
+- Perform membership queries to determine L i [ m ] for each L i ∈ C t . Note that since m ≥ m t ≥ max t ′ &lt;t w t ′ , the determination of which languages in C t are consistent with S t does not change when we do this.
+- Determine which languages are ( t, m ) -critical, and from this determine n t ( m ) . Note that this only requires consulting the results of membership queries already performed.
+- If u m ∈ L n t ( m ) , then output u m and define m t = m . Otherwise, continue to the next iteration.
+
+Analyzing the algorithm. As written, it is not immediately clear that the algorithm's iterations in step t will come to an end with an output string u m , rather than running forever. But we can show the algorithm does terminate, via the following claim proved in Section A.3.
+
+(5.5) In step t , the algorithm outputs a string after a finite sequence of operations.
+
+Given that (5.5) establishes that the algorithm outputs a string in step t , it is useful to record an additional property of the algorithm that follows directly from its construction.
+
+(5.6) In step t , there is an m t and an n t such that the algorithm outputs a string from L n t [ m t ] , where L n t is the ( t, m t ) -critical language with maximum index in C t .
+
+Finally, we have the natural analogue of (4.6), proved in Section A.3, from which our main result (2.1) directly follows.
+
+(5.7) For any language L z ∈ C and any enumeration of L z , there is a t ∗ such that for all t ≥ t ∗ , the algorithm generates a string in L z -S t .
+
+Similar to the end of Section 4, it is straightforward to modify the algorithm so it generates strings without repetition.
+
+## 6 Generation for Finite Collections of Languages
+
+We now turn to our second main result, (2.2), which derives a stronger conclusion for finite collections of languages.
+
+The proof of this result takes a different approach from what we used in the previous two sections; for the problem in this section, at a given step t , the approach we follow is to take the finite sample S t seen so far and ask whether there are any additional strings w glyph[negationslash]∈ S t that are common to all the languages in C that are consistent with S t . If so, then we can output such a string and be sure of satisfying the specification for generation.
+
+The closure operation. We formalize this plan using the notion of a closure operation, as follows. For a sequence of strings S t from a language in C , we define the closure of S t in C , denoted 〈 S t 〉 , to be the intersection of all languages in C that are consistent with S t . If there is a string in 〈 S t 〉 -S t , then it is always safe for the algorithm to generate such a string; by definition, it must be an unseen string from the true language L z . The closure operation would not have been useful for us in the case of general infinite collections of languages C , since there are instances of the general problem where 〈 S t 〉 = S t and so the closure does not provide us with any proposals for new strings to generate. We give an example of such an instance in Appendix A.6.
+
+However, in the case of finite collections C such as we are considering in this section, the closure operation becomes a powerful tool: the crux of proving (2.2) is to show that once S t is large enough, 〈 S t 〉 must become infinite, so we will have an infinite set of options in 〈 S t 〉 -S t to use.
+
+Proving the result for finite collections. We start by giving the basic idea behind the proof, and then the proof itself. Let us write the finite collection of candidate languages as C = { L 1 , L 2 , . . . , L n } , and suppose that after the adversary has enumerated a set S of strings, the languages consistent with S are L i 1 , L i 2 , . . . , L i k . Note that the true language K must be one of these k languages. Now, the closure 〈 S 〉 is equal to the mutual intersection L i 1 ∩ L i 2 ∩ · · · ∩ L i k , and there are two possibilities: either 〈 S 〉 is infinite, or it is finite. If it is infinite, then the algorithm can safely generate all of the strings in 〈 S 〉 -S , and thus achieve the goal specified by (2.2). On the other hand, if 〈 S 〉 is finite, then it has size equal to some natural number m ; in this case, after the adversary enumerates at most m +1 more distinct strings, the algorithm will learn that at least one of L i 1 , L i 2 , . . . , L i k is no longer consistent. We will then have a set of at most k -1 consistent languages, and we can iterate this argument at most k -2 more times until (i) there is only a single consistent language, which must be K , or (ii) more generally, the set of all consistent languages has a mutual intersection that is infinite, in which case the algorithm can safely generate from this infinite set.
+
+This argument conveys the key point underlying the proof, that as the adversary enumerates strings from K , it cannot prevent itself from reaching a point where the set of strings it has enumerated has an infinite closure. To turn this into an argument that produces a uniform bound on how many strings are needed before the closure must become infinite, we replace the iterative argument in the previous paragraph with one that is shorter and more direct. Specifically, consider all sub-collections of languages from C (where we think of a sub-collection as any way of choosing some of the languages from C but not others). Note that since C is finite, there are only finitely many possible sub-collections of languages from C . For each sub-collection C ′ , the mutual intersection of the languages in C ′ is either finite or infinite. Consider the sub-collections that have a finite mutual intersection, and let m ∗ be the maximum size of such a mutual intersection. Now, suppose the adversary produces a set S of m ∗ +1 distinct strings from K . If we consider the sub-collection of all languages in C that are consistent with S , its mutual intersection must contain S and therefore it has cardinality greater than m ∗ . By the definition of m ∗ , this means that its cardinality must be infinite. So the closure 〈 S 〉 is infinite, and therefore the algorithm can safely generate all the strings in 〈 S 〉 -S .
+
+We give a formal version of this argument in Section A.4, providing the complete proof of (2.2).
+
+## 7 Extension: Prompted Generation in the Limit
+
+As discussed in Section 2, a natural generalization is to ask whether we can preserve the basic structure of the model while adding a notion of prompting : the algorithm is provided with a prompt string and it must complete it to a valid output. The overall set-up is as before: an adversary chooses a true language K from C , and it begins enumerating the strings of K in a sequence of steps.
+
+A model of prompting. The new feature of the problem in our generalization is that in every step t , the adversary provides the algorithm with two things: a string w t from the true language K , and a string p t that serves as a prompt . (The adversary is allowed use the same prompt in multiple steps.) The algorithm in step t must then produce a string c t with the goal that the concatenation of p t and c t is a string belonging to K -S t ; that is, it should be an unseen string from K . In what follows, we will use p t · c t to denote the concatenation of p t and c t .
+
+We observe that it leads to an equivalent problem whether we ask the algorithm to output c t so that p t · c t ∈ K -S t , or whether we ask the algorithm to output the full contatenated string a t = p t · c t . In this latter formulation, we can phrase the algorithm's task as follows: given a prompt p t , output a string a t with the properties that p t is a prefix of a t , and a t ∈ K -S t . Because it makes the exposition slightly simpler, we will take this latter formulation as our default way of describing the problem, but the two formulations are equivalent.
+
+To establish a positive result for prompted generation in the limit, we need to impose some type of restriction on the prompts the adversary can provide. For example, if the adversary were simply to provide an arbitrary string p t and ask the algorithm if there exists a string c t and a language L i ∈ C for which p t · c t ∈ L i , this is not a problem that could be solved by an algorithm that must terminate and whose only access to C comes in the form of membership queries of the form 'Is w ∈ L i ?'
+
+Here we describe a result based on the following restriction on the adversary's prompts: We say a prompt p is robust if for all languages L i ∈ C , there exist arbitrarily long strings c for which p · c ∈ L i . In the present discussion we will consider adversaries that only provide robust prompts.
+
+We say that the algorithm achieves prompted generation from K in the limit if there is some t ∗ such that for all steps t ≥ t ∗ , the algorithm's output a t has the property that p t is a prefix of a t and a t ∈ K -S t . We can prove the following.
+
+(7.1) There is an algorithm with the property that for any countable collection of languages C = { L 1 , L 2 , L 3 , . . . } , and any enumeration of one of these languages K accompanied by a sequence of robust prompts, the algorithm achieves prompted generation from K in the limit.
+
+We provide a proof of this theorem in Section A.5 in the Appendix. In the full version of the paper we also explore stronger statements that are based on giving the adversary more freedom in the prompts it is allowed to provide.
+
+We close with two initial observations about (7.1). First, (7.1) is a strict generalization of our first main result (2.1), since if the adversary always provides the empty string as its prompt p t , then the problem of finding continuations c t for which p t · c t ∈ K -S t is simply the problem of finding strings c t in K -S t , as in the original definition of generation in the limit. Moreover, the empty string is a robust prompt, since each of the languages L i ∈ C is infinite, and so there are arbitrarily long continuation strings that belong to L i when concatenated to the empty string.
+
+Second, we observe that there is no requirement that the algorithm has ever seen a string beginning with the prefix p t among the adversary's examples S t ⊆ K before the first step t in which the adversary provides p t . An important point to notice about (7.1) is that the algorithm can achieve prompted generation in the limit despite this challenge.
+
+## 8 Concluding Remarks
+
+Generating from a language based on observed samples is thus a fundamentally different, more tractable problem than identifying the language from observed samples. It is so tractable, in fact, that it can be accomplished provided only that we know the samples come from a language in a known countable collection of languages.
+
+It is therefore interesting to ask what stylized conclusions we might draw from these general results about generation as a task, and its relation to other learning processes. In the case of finite collections of languages, the basic idea underlying the proof is that a large 'core' to the language (the closure of the sample, in our terminology) emerges at a known time after a finite set of observations, and it is then enough to generate from this core even though there might always remain peripheral parts of the language - disjoint from this core - that we can never be sure about. In the case of infinite collections of languages, the task is even more complex, because there is never a known time at which a core to the language emerges. Instead, the algorithm may need to continually shrink the set it is using for generation; through this infinite process of shrinkage, the algorithm can be sure that beyond a certain point, it is always generating from the true language K , even if it can not be sure when it has reached this point or what the true language is.
+
+Thus, as noted earlier, the solutions we develop highlight interesting tensions between the problem of producing valid strings that belong to the target language, and the problem of maintaining breadth by not restricting to only a small subset of the target language. Our approaches achieve validity through a strategy that implicitly gives up on breadth, and it is interesting to ask if this is essentially necessary for any method that achieves language generation in the limit. In this way, our formalism may also help shed light on a particular broader impact of large language models, which is their implications for the homogenization of text style, in which writing becomes less varied; our results provide further indications that decreased breadth in text output may be a crucial feature of successful solutions to text generation.
+
+This tension between validity and breadth, as it arises in our solution, also creates an interesting echo of the human process by which people acquire the vernacular within a new community [5]: as with our solution in this abstract model, people encountering the dialect in a new community similarly pass through a sequence of conceptually distinct phases: an initial phase in which they are generating too adventurously and producing invalid utterances; then a phase where the utterances are approximately aligned with the scope of the language; and finally a phase in which the range of utterances they are willing to generate shrinks further over their lifetime, as they become increasingly conservative in what they consider valid. Again, it is interesting to consider whether this type of structure is inherent in any solution to the task of generation in the limit.
+
+Acknowledgements. We thank Bobby Kleinberg, Lillian Lee, Marios Papachristou, and Kenny Peng for helpful discussions on these questions and on early drafts of this paper. The work has been supported in part by a Vannevar Bush Faculty Fellowship, a Simons Collaboration grant, a grant from the MacArthur Foundation, and the Center for Applied AI at the University of Chicago Booth School of Business.
+
+## References
+
+- [1] Dana Angluin. Finding patterns common to a set of strings. In Proceedings of the eleventh annual ACM Symposium on Theory of Computing , pages 130-141, 1979.
+- [2] Dana Angluin. Inductive inference of formal languages from positive data. Information and control , 45(2):117-135, 1980.
+- [3] Martín Arjovsky and Léon Bottou. Towards principled methods for training generative adversarial networks. In 5th International Conference on Learning Representations, ICLR 2017, Toulon, France, April 24-26, 2017, Conference Track Proceedings . OpenReview.net, 2017.
+- [4] Martín Arjovsky, Soumith Chintala, and Léon Bottou. Wasserstein generative adversarial networks. In Doina Precup and Yee Whye Teh, editors, Proceedings of the 34th International Conference on Machine Learning, ICML 2017, Sydney, NSW, Australia, 6-11 August 2017 , volume 70 of Proceedings of Machine Learning Research , pages 214-223. PMLR, 2017.
+- [5] Cristian Danescu-Niculescu-Mizil, Robert West, Dan Jurafsky, Jure Leskovec, and Christopher Potts. No country for old members: User lifecycle and linguistic change in online communities. In Proceedings of the 22nd international conference on World Wide Web , pages 307-318, 2013.
+- [6] E Mark Gold. Language identification in the limit. Information and control , 10(5):447-474, 1967.
+- [7] Ziwei Ji, Nayeon Lee, Rita Frieske, Tiezheng Yu, Dan Su, Yan Xu, Etsuko Ishii, Ye Jin Bang, Andrea Madotto, and Pascale Fung. Survey of hallucination in natural language generation. ACM Computing Surveys , 55(12):1-38, 2023.
+- [8] Adam Tauman Kalai and Santosh S. Vempala. Calibrated language models must hallucinate. In Bojan Mohar, Igor Shinkar, and Ryan O'Donnell, editors, Proceedings of the 56th Annual ACM Symposium on Theory of Computing, STOC 2024, Vancouver, BC, Canada, June 24-28, 2024 , pages 160-171. ACM, 2024.
+- [9] Lillian Lee. Learning of context-free languages: A survey of the literature. Technical Report TR-12-96, Harvard University, 1996.
+- [10] Vinod Raman and Ambuj Tewari. Generation through the lens of learning theory. arXiv preprint arXiv:2410.13714 , 2024.
+- [11] Ziwei Xu, Sanjay Jain, and Mohan Kankanhalli. Hallucination is inevitable: An innate limitation of large language models. arXiv preprint arXiv:2401.11817 , 2024.
+
+## A Appendix
+
+## A.1 Review of Negative Results for Identification
+
+In the interests of completeness, we provide a self-contained proof of the Gold-Angluin result that language identification in the limit is not possible in general. adapting the exposition from [6, 9]. As noted in the main text, this proof is not necessary for the results in our paper, but it provides useful background and context for thinking about the problem.
+
+There are many ways to show the impossibility of language generation in the limit using very simple language families, and we choose one that highlights some intuitive contrasts with generation. For the argument, let U be the set of all integers, and let the collection of languages - each of which is a subset of U -be the set of all infinite arithmetic progressions of integers. (The choice of which countable ground set U we use is not crucial for any of these results, and examples are often easier to describe over the set of integers than over the set of finite strings.) Formally, for an arbitrary integer a and a positive integer b , let P a,b be the arithmetic progression consisting of all integers of the form { a + bi : i = 0 , 1 , 2 , . . . } ; and let Q a,b be the 'bidirectional' arithmetic progression consisting of all integers of the form { a + bi : i = . . . , -2 , -1 , 0 , 1 , 2 , . . . } . Let the collection C consist of all arithmetic progressions P a,b and Q a,b .
+
+Now, suppose by way of contradiction that there is an algorithm that can identify in the limit an adversarially chosen arithmetic progression K ∈ C . We construct an enumeration of K that causes the algorithm to fail, as follows. First, for integers a ≤ b , let I [ a, b ] be the interval of all integers c for which a ≤ c ≤ b . We enumerate elements of U in stages, where each stage s ≥ 0 consists of a set of consecutive steps. If by induction stage s has enumerated the elements of the interval I [ -s, j ( s )] for some j ( s ) ≥ 0 , then stage s +1 will enumerate additional elements so that by the end of the stage we have enumerated exactly I [ -( s +1) , j ( s +1)] for some j ( s +1) &gt; j ( s ) . In particular, stage s +1 first enumerates -( s +1) and j ( s ) + 1 , and then it begins enumerating j ( s ) + 2 , j ( s ) + 3 , . . . in increasing order. At some point during this process, the algorithm must output P -( s +1) , 1 as its guess for K , since we can continue in this way to produce a full enumeration of P -( s +1) , 1 , at which point the true language is K = P -( s +1) , 1 . Once the algorithm outputs P -( s +1) , 1 as its guess during stage s +1 , we end stage s +1 , defining j ( s +1) to be largest integer we've enumerated up to that point, and we begin stage s +2 .
+
+In this way, the successive stages extend the interval I [ -s, j ( s )] unboundedly in both directions. We are therefore enumerating Q 0 , 1 = U , and so in fact K = Q 0 , 1 . But we have also produced an unbounded sequence of steps t 0 &lt; t 1 &lt; t 2 &lt; · · · such that the algorithm guesses P -j, 1 at step t j . Thus, there is no time step t ∗ for which the algorithm outputs the (correct) guess Q 0 , 1 at every t ≥ t ∗ .
+
+As a final note, we observe that for this simple collection of languages, the problem of generation in the limit is straightforward: once the algorithm has seen two elements i and j from K , with i &lt; j , it knows from the arithmetic progression structure that by setting d = j -i , it can safely output j + d, j +2 d, j +3 d, . . . , and all of these will belong to K . The generation task for this language family is thus particularly simple (for others it is much more subtle, as in the example from Appendix A.6), but this contrast with the negative result for identification provides some initial intuition about the differences between the two problems that we will need to exploit in a generation algorithm.
+
+## A.2 Proofs from Section 4
+
+In the next three subsections of the Appendix, we provide proofs of the results stated in the main text.
+
+Proof of (4.3). Let K be the indices i &lt; z for which L z glyph[negationslash]⊆ L i . For each i ∈ K , let v i be an element of L z -L i . Let t i be the step in which v i first appears in the enumeration of L z , and let t + = max i ∈ K t i .
+
+Now, suppose by way of contradiction that for some t ≥ t + , the language L z is not critical at step t . In this case, there must be some L i ∈ C z such that L i is consistent with S t and L z glyph[negationslash]⊆ L i . But we know that v i ∈ S t and v i glyph[negationslash]∈ L i , contradicting the consistency of L i with S t . glyph[square]
+
+Proof of (4.6). In the given enumeration of L z , (4.3) tells us that there will come a step t + such that for all t ≥ t + , the language L z is critical at step t . Let t ∗ = max( z, t + ) . In every step t ≥ t ∗ ,
+
+our construction of f C will include L z among its critical languages in C t . Therefore, the highestindexed critical language L n t ∈ C t satisfies n t ≥ z , and so by (4.4) we have L n t ⊆ L z . Since f C ( S t ) ∈ L n t -S t , we have f C ( S t ) ∈ L z -S t as required. glyph[square]
+
+## A.3 Proofs from Section 5
+
+Proof of (5.4). Since L n is ( t, m ) -critical, we know it is consistent with S t , and that L n [ m ] ⊆ L i [ m ] for all languages L i ∈ C n such that L i is consistent with S t . Now, if L i is a language in C n that is consistent with S t , then since L n [ m ] ⊆ L i [ m ] and m ′ &lt; m , we have L n [ m ′ ] ⊆ L i [ m ′ ] . It follows that L n [ m ′ ] ⊆ L i [ m ′ ] for all languages L i ∈ C n such that L i is consistent with S t , and so L n is ( t, m ′ ) -critical. glyph[square]
+
+Proof of (5.5). We identify each iteration with the value of m after the initial increment of the iteration; so the iterations begin at m t + 1 and continue upward from there. Suppose by way of contradiction that the algorithm performs an infinite sequence of iterations.
+
+glyph[negationslash]
+
+Let us call an iteration m disruptive if n t ( m ) = n t ( m -1) . Since n t ( m -1) is the maximum index of a ( t, m -1) -critical language, and since our monotonicity property (5.4) implies that L n t ( m ) is also ( t, m -1) -critical, it follows that n t ( m ) &lt; n t ( m -1) . Since n t ( m ) starts at a value bounded by t and decreases by at least one with every disruptive iteration, there can be at most t -1 disruptive iterations.
+
+The sequence of iterations must therefore contain a last disruptive iteration m ∗ . For all iterations m&gt;m ∗ , the language L n t ( m ) does not change. Since the language is infinite, we must eventually reach an iteration m &gt; m ∗ for which u m ∈ L n t ( m ) , and the algorithm will stop and output u m at this point. glyph[square]
+
+Proof of (5.7). In the given enumeration of L z , (5.2) tells us that there is a t + such that for all t ≥ t + and all m ≥ 1 , the language L z is ( t, m ) -critical. Let t ∗ = max( z, t + ) . In every step t ≥ t ∗ , by (5.6) there is an m t such that the algorithm generates a string from L n t [ m t ] , where L n t is the ( t, m t ) -critical language with maximum index in C t . In each such step t , L z is a ( t, m t ) -critical language in C t , and so n t ≥ z . From (5.3), it follows that L n t [ m t ] ⊆ L z [ m t ] ⊆ L z . Since the algorithm's output comes from L n t [ m t ] -S t , it follows that it comes from L z -S t as well. glyph[square]
+
+## A.4 Proofs from Section 6
+
+Proof of (2.2). We begin with some additional definitions. For any subset A of the indices { 1 , 2 , . . . , n } , let D ( A ) be the intersection of the languages whose indices are in A ; in other words, D ( A ) = ⋂ i ∈ A L i . For any sequence S of strings from a language in C , let I ( S ) be the set of indices of the languages in C that contain S ; that is, I ( S ) = { i : S ⊆ L i } . We observe that the closure operator can be written in terms of this notation, in that 〈 S 〉 = D ( I ( S )) .
+
+If D = D ( { 1 , 2 , . . . , n } ) is infinite, then the algorithm can generate arbitrary strings from D as its output without seeing any sample of strings at all; since D ⊆ L i for every language L i ∈ C , in particular D ⊆ L z for the true language L z , and this satisfies the requirements of (2.2).
+
+For the rest of the proof, we therefore suppose D ( { 1 , 2 , . . . , n } ) is finite. Let F be the collection of all sets of indices A ⊆ { 1 , 2 , . . . , n } with D ( A ) finite. Finally, let m ∗ = max A ∈F | D ( A ) | ; since |F| ≤ 2 n , we observe that m ∗ is the maximum of a finite set of positive integers, and hence a positive integer. We now define t ( C ) = m ∗ +1 and claim that this choice of t ( C ) satisfies the required guarantee of (2.2). Indeed, consider the true language L z ∈ C and any sequence S t of t ( C ) distinct elements from L z . Recall that I ( S t ) denotes the set of indices of all languages in C that contain S t . We have S t ⊆ 〈 S t 〉 = D ( I ( S t )) . If D ( I ( S t )) were finite, then by the definition of m ∗ , the cardinality of D ( I ( S t )) would be at most m ∗ . But this would contradict the fact that D ( I ( S t )) contains S t , which has cardinality m ∗ +1 .
+
+Therefore 〈 S t 〉 = D ( I ( S t )) is infinite, and it is a subset of the true language L z . To conclude the proof, we therefore need only show that there is an algorithm that can enumerate all of 〈 S t 〉 -S t
+
+using only membership queries. To do this, the algorithm begins by querying whether each w i ∈ S t belongs to each L j ∈ C . From this, it can determine the set I ( S t ) of indices of languages that contain S t . Now, it enumerates every string u i ∈ U in ascending order, skipping the elements of S t . For each such string u i , it queries whether u i ∈ L j for each j ∈ I ( S t ) , and it outputs u i if it belongs to each of these languages. In this way, the algorithm enumerates the infinite set 〈 S t 〉 -S t ⊆ L z -S t after seeing a sample of t ( C ) strings in L z . glyph[square]
+
+## A.5 Proofs from Section 7
+
+We now describe how to prove our result (7.1) on prompted generation with robust prompts. The proof is a direct adaptation of the proof of (2.1) from Section 5; as we will see, the structure of critical languages built up there is sufficiently strong that not much more is needed to handle the prompted version of the problem with robust prompts.
+
+As in Section 5, we will work with a specific enumeration u 1 , u 2 , u 3 , . . . of all strings in U , and work with finite subsets of the languages L i , defined via the notation L i [ m ] = L i ∩{ u 1 , u 2 , . . . , u m } . The algorithm for prompted generation will closely follow the algorithm from Section 5, in that in every step t , it will increment a counter m and maintain knowledge of the maximum index n t ( m ) of a ( t, m ) -critical language from C t . Maintaining knowledge of n t ( m ) does not require knowledge of the prompts, and so this part of the algorithm is the same as before. What changes is the stopping condition for the algorithm in step t : rather than continue increasing m until any valid output is found -that is, until u m ∈ L n t ( m ) -the algorithm must increase m potentially even further, until it finds a string u m for which p t is a prefix of u m , and u m ∈ L n t ( m ) -S t . However, since p t is a robust prompt, the algorithm is guaranteed to eventually find such a string, and so we can be sure that its iterations in step t will terminate. If we let m t be the value of m at the end of step t , then once t is large enough, we know that L n t ( m t ) [ m t ] ⊆ L z [ m t ] , where L z = K is the true language, and so the string u m that it outputs has p t as a prefix and belongs to K -S t as required.
+
+The discussion above provides the entire set of modifications to the algorithm; for completeness we now describe these in more detail, together with a proof of correctness.
+
+First, the facts (5.2) through (5.4) still hold in the prompted case, since they are structural properties of the language that are not affected by the adversary's use of prompts. The algorithm for generating an output string uses an iteration in step t for which parts (i), (ii), and (iii) of each iteration are the same as in Section 5. Step (iv) of each iteration is replaced by
+
+- (iv ′ ) If there is any string u i for i ≤ m such that u i has p t as a prefix and u i ∈ L n t ( m ) -S t , then choose the minimum i with this property; output the string u i and define m t = m . If there is no such u i , then continue to the next iteration.
+
+Now, the proof of termination works as before, by establishing that there are only finitely many disruptive iterations in which the identity of n t ( m ) changes; this part does not depend on the structure of prompts but only on the definition of a ( t, m ) -critical language, and so it uses (5.2) through (5.4) exactly as before. After the last disruptive iteration, either there is a string u i ∈ L n t ( m ) -S t with i ≤ m for which p t is a prefix, or else the algorithm will eventually reach one, since the prompt p t is robust. It declares this u m to be its output string. We therefore have
+
+(A.1) In step t , if at least one language in C t is consistent with S t , then there is an m t and an n t such that the algorithm terminates with a string a t for which p t is a prefix of a t and a t ∈ L n t ( m t ) [ m t ] -S t , where L n t ( m t ) is the ( t, m t ) -critical language with maximum index in C t .
+
+Finally, we establish the basic correctness property of the algorithm, from which (7.1) follows directly.
+
+(A.2) For any language L z ∈ C and any enumeration of L z with robust prompts p 1 , p 2 , p 3 , . . . , there is a t ∗ such that for all t ≥ t ∗ , the algorithm generates a string a t for which p t is a prefix of a t and a t ∈ L z -S t .
+
+Proof. In the given enumeration of L z , (5.2) tells us that there is a t + such that for all t ≥ t + and all m ≥ 1 , the language L z is ( t, m ) -critical. Let t ∗ = max( z, t + ) . In every step t ≥ t ∗ , by (A.1) there is an m t such that the algorithm generates a string a t such that p t is a prefix of a t , and a t ∈ L n t ( m t ) [ m t ] -S t , where L n t ( m t ) is the ( t, m t ) -critical language with maximum index in C t . In each such step t , L z is a ( t, m t ) -critical language in C t , and so n t ( m t ) ≥ z . From (5.3), it follows
+
+that L n t ( m t ) [ m t ] ⊆ L z [ m t ] ⊆ L z . Since a t ∈ L n t ( m t ) [ m t ] -S t , it follows that a t ∈ L z -S t as well. glyph[square]
+
+## A.6 An Example Where Closure is Not Helpful
+
+In Section 6, we introduced the notion of closure : For a sequence of strings S t from a language in C , the closure of S t in C , denoted 〈 S t 〉 , is the intersection of all languages in C that are consistent with S t .
+
+We observed in Section 6 that in any step t where 〈 S t 〉 contains an element not in S t , the algorithm can always safely output an element in 〈 S t 〉 -S t and be sure that it is outputting a new element in the true language K This is simply because for every consistent language L i ∈ C , we have 〈 S t 〉 -S t ⊆ L i -S t by the definition of the closure operation, and in particular this holds for the true language K .
+
+This strategy is key to the proof in Section 6, when we were dealing with finite collections C , and it would have been an effective strategy in the case of infinite collections C as well provided we could be sure that 〈 S t 〉 -S t was always non-empty. Unfortunately, there are instances of the problem with infinite collections C for which 〈 S t 〉 -S t is empty for arbitrarily large t , and therefore the closure provides us with no new strings to generate.
+
+To see how this can happen in an example, we go back to the collection of arithmetic progresions over the integers as the ground set U , and we consider a more complicated collection C that builds on this. In particular, we let P a,b as before be the arithmetic progression consisting of all integers of the form { a + bi : i = 0 , 1 , 2 , . . . } ; and now, for any finite set of integers V , we define the language L ( a, b, V ) = P a,b ∪ V . Our collection C consists of every L ( a, b, V ) for an arbitrary integer a , an arbitrary positive integer b , and an arbitrary finite set of integers V . (Think of L ( a, b, V ) as a copy of the arithmetic progression P a,b that has been obscured by an arbitrarily large finite set V so that its structure is harder to discern.)
+
+Now, suppose the adversary is enumerating a language K = L ( a, b, V ) ∈ C , and consider the set S t of samples after t steps. We claim that 〈 S t 〉 = S t . Intuitively, this is because S t might have come completely from the finite set V that is part of L ( a, b, V ) ; more formally, there cannot be any element j ∈ 〈 S t 〉 -S t because L ( j +1 , 1 , S t ) is consistent with S t , and it does not contains j .
+
+This example illustrates the sense in which we mean that closure by itself is insufficient to provide a strategy for generation in the limit when the collection of languages C is infinite: in this instance, the algorithm has to repeatedly output elements outside the closure of S t and yet somehow eventually generate from K . We know that the algorithm that proves our main result (2.1) is able to do this, but it is also interesting to ask if there is a simpler way to directly describe a method for generation in the limit for this particular example. In fact, there is a direct solution to this example, as follows: in any step t , the algorithm finds the two largest elements i &lt; j in S t , and with b = j -i , it outputs j + b . The point is that if the true language K is L ( a, b, V ) , there will come a time when the adversary has enumerated every element of V , and within a finite number of steps after this, the two largest elements of S t will have to come from P a,b . From this step onward, the algorithm's strategy of outputting j + b is guaranteed to produce an element in K -S t . This particular strategy of course seems highly specific to the particular example we are discussing here, but at a very high level it does contain reflections of some of the ideas we saw in the general solution from Sections 4 and 5.
+
+##

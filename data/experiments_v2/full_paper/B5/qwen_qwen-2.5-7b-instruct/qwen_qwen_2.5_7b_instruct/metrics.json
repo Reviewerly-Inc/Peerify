@@ -1,0 +1,100 @@
+{
+  "benchmark_path": "/Users/alirezadaghigh/Desktop/Peerify/data/valid_benchmarks/B5_verifiable.jsonl",
+  "benchmark_name": "B5_verifiable",
+  "model_provider": "openrouter",
+  "model_name": "qwen/qwen-2.5-7b-instruct",
+  "total_processed": 117,
+  "total_skipped": 14,
+  "classification_metrics": {
+    "accuracy": 0.27350427350427353,
+    "per_label": {
+      "Contradicted": {
+        "precision": 0.18181818181818182,
+        "recall": 0.17391304347826086,
+        "f1": 0.17777777777777778,
+        "support": 23
+      },
+      "Not Determined": {
+        "precision": 0.14285714285714285,
+        "recall": 0.15,
+        "f1": 0.14634146341463414,
+        "support": 20
+      },
+      "Partially Supported": {
+        "precision": 0.3076923076923077,
+        "recall": 0.4444444444444444,
+        "f1": 0.36363636363636365,
+        "support": 27
+      },
+      "Supported": {
+        "precision": 0.38235294117647056,
+        "recall": 0.2765957446808511,
+        "f1": 0.32098765432098764,
+        "support": 47
+      },
+      "Unsupported": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      }
+    },
+    "macro_avg": {
+      "precision": 0.2029441147088206,
+      "recall": 0.20899064652071128,
+      "f1": 0.20174865182995266
+    },
+    "weighted_avg": {
+      "precision": 0.2847627485636535,
+      "recall": 0.27350427350427353,
+      "f1": 0.2728232455423061
+    },
+    "confusion_matrix": {
+      "labels": [
+        "Contradicted",
+        "Not Determined",
+        "Partially Supported",
+        "Supported",
+        "Unsupported"
+      ],
+      "matrix": [
+        [
+          4,
+          3,
+          7,
+          9,
+          0
+        ],
+        [
+          1,
+          3,
+          9,
+          6,
+          1
+        ],
+        [
+          6,
+          3,
+          12,
+          6,
+          0
+        ],
+        [
+          11,
+          12,
+          11,
+          13,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    }
+  },
+  "dry_run": false
+}

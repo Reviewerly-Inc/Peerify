@@ -1,0 +1,82 @@
+{
+  "benchmark_path": "/Users/alirezadaghigh/Desktop/Peerify/data/valid_benchmarks/B5_verifiable.jsonl",
+  "benchmark_name": "B5_verifiable",
+  "model_provider": "openai",
+  "model_name": "gpt-5-mini",
+  "total_processed": 131,
+  "total_skipped": 0,
+  "classification_metrics": {
+    "accuracy": 0.5419847328244275,
+    "per_label": {
+      "Contradicted": {
+        "precision": 0.3559322033898305,
+        "recall": 0.84,
+        "f1": 0.5,
+        "support": 25
+      },
+      "Not Determined": {
+        "precision": 0.75,
+        "recall": 0.2857142857142857,
+        "f1": 0.41379310344827586,
+        "support": 21
+      },
+      "Partially Supported": {
+        "precision": 0.5185185185185185,
+        "recall": 0.4827586206896552,
+        "f1": 0.5,
+        "support": 29
+      },
+      "Supported": {
+        "precision": 0.8108108108108109,
+        "recall": 0.5357142857142857,
+        "f1": 0.6451612903225806,
+        "support": 56
+      }
+    },
+    "macro_avg": {
+      "precision": 0.60881538317979,
+      "recall": 0.5360467980295567,
+      "f1": 0.5147385984427141
+    },
+    "weighted_avg": {
+      "precision": 0.6495476910472383,
+      "recall": 0.5419847328244275,
+      "f1": 0.5482342551944909
+    },
+    "confusion_matrix": {
+      "labels": [
+        "Contradicted",
+        "Not Determined",
+        "Partially Supported",
+        "Supported"
+      ],
+      "matrix": [
+        [
+          21,
+          0,
+          4,
+          0
+        ],
+        [
+          8,
+          6,
+          3,
+          4
+        ],
+        [
+          11,
+          1,
+          14,
+          3
+        ],
+        [
+          19,
+          1,
+          6,
+          30
+        ]
+      ]
+    }
+  },
+  "dry_run": false
+}

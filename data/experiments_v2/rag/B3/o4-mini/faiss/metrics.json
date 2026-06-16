@@ -1,0 +1,84 @@
+{
+  "benchmark_path": "/Users/alirezadaghigh/Desktop/Peerify/data/valid_benchmarks/B3_reviewer_paper.jsonl",
+  "benchmark_name": "B3_reviewer_paper",
+  "retriever": "faiss",
+  "llm_model": "o4-mini",
+  "top_k": 10,
+  "total_processed": 800,
+  "total_skipped": 0,
+  "retrieval_metrics": {},
+  "classification_metrics": {
+    "accuracy": 0.51375,
+    "per_label": {
+      "Contradicted": {
+        "precision": 0.352112676056338,
+        "recall": 0.7092198581560284,
+        "f1": 0.47058823529411764,
+        "support": 141
+      },
+      "Not Determined": {
+        "precision": 0.6951672862453532,
+        "recall": 0.520891364902507,
+        "f1": 0.5955414012738853,
+        "support": 359
+      },
+      "Partially Supported": {
+        "precision": 0.2727272727272727,
+        "recall": 0.16129032258064516,
+        "f1": 0.20270270270270271,
+        "support": 93
+      },
+      "Supported": {
+        "precision": 0.5677083333333334,
+        "recall": 0.5265700483091788,
+        "f1": 0.5463659147869674,
+        "support": 207
+      }
+    },
+    "macro_avg": {
+      "precision": 0.4719288920905743,
+      "recall": 0.47949289848708987,
+      "f1": 0.4537995635144182
+    },
+    "weighted_avg": {
+      "precision": 0.5526152555620772,
+      "recall": 0.51375,
+      "f1": 0.5151267499325612
+    },
+    "confusion_matrix": {
+      "labels": [
+        "Contradicted",
+        "Not Determined",
+        "Partially Supported",
+        "Supported"
+      ],
+      "matrix": [
+        [
+          100,
+          25,
+          5,
+          11
+        ],
+        [
+          87,
+          187,
+          25,
+          60
+        ],
+        [
+          44,
+          22,
+          15,
+          12
+        ],
+        [
+          53,
+          35,
+          10,
+          109
+        ]
+      ]
+    }
+  },
+  "dry_run": false
+}

@@ -17,30 +17,28 @@ try:
     from openai import OpenAI
     OPENAI_AVAILABLE = True
 
-    vllm_clients = {
-        'qwen': OpenAI(api_key="EMPTY", base_url="http://0.0.0.0:8000/v1"),
-        'gpt-oss': OpenAI(api_key="EMPTY", base_url="http://0.0.0.0:8000/v1"),
-    }
-    VLLM_AVAILABLE = True
-
     openai_api_key = os.environ.get('OPENAI_API_KEY', '')
-    if openai_api_key:
-        openai_client = OpenAI(api_key=openai_api_key)
-    else:
-        openai_client = None
+    openai_client = OpenAI(api_key=openai_api_key) if openai_api_key else None
+
+    # Cloud-API replacement for the old localhost:8000 vLLM server.
+    # Any model id with a slash routes to OpenRouter (qwen/qwen3-8b, google/gemma-3-12b-it, ...).
+    openrouter_api_key = os.environ.get('OPENROUTER_API_KEY', '')
+    openrouter_client = OpenAI(api_key=openrouter_api_key,
+                               base_url="https://openrouter.ai/api/v1") if openrouter_api_key else None
+    VLLM_AVAILABLE = openrouter_client is not None
 
 except ImportError:
     OPENAI_AVAILABLE = False
     VLLM_AVAILABLE = False
-    vllm_clients = {}
     openai_client = None
+    openrouter_client = None
     try:
         from ollama import chat
     except ImportError:
         pass
 
 os.environ['DISABLE_FLASH_ATTN'] = '1'
-os.environ['TRANSFORMERS_OFFLINE'] = '0'
+# Do not override HF_HUB_OFFLINE / TRANSFORMERS_OFFLINE — let the caller set them.
 
 try:
     from transformers import AutoTokenizer, AutoModel
@@ -60,14 +58,23 @@ except Exception:
 _fenice_model = None
 _fenice_tokenizer = None
 _gemma_pipeline = None
+_bi_encoder_cache: dict = {}   # model_name -> (tokenizer, model)
+_cross_encoder_cache: dict = {}  # model_name -> CrossEncoder
+_chunk_embedding_cache: dict = {}  # (model_name, chunk_texts_hash) -> tensor
+
+
+def _best_device():
+    if torch.cuda.is_available():
+        return torch.device("cuda:0")
+    if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
 
 
 def get_fenice_model():
     global _fenice_model, _fenice_tokenizer
     if _fenice_model is None:
-        if not torch.cuda.is_available():
-            raise SystemError("GPU is required to run this code.")
-        device = torch.device("cuda:0")
+        device = _best_device()
         _fenice_tokenizer = T5Tokenizer.from_pretrained("Babelscape/t5-base-summarization-claim-extractor")
         _fenice_model = T5ForConditionalGeneration.from_pretrained("Babelscape/t5-base-summarization-claim-extractor")
         _fenice_model.to(device)
@@ -97,7 +104,7 @@ def get_gemma_pipeline():
 
 def extract_claims_from_review_fenice(review):
     model, tokenizer = get_fenice_model()
-    device = torch.device("cuda")
+    device = _best_device()
     tok_input = tokenizer.batch_encode_plus([review], return_tensors="pt", padding=True)
     tok_input = {key: value.to(device) for key, value in tok_input.items()}
     claims = model.generate(**tok_input)
@@ -109,13 +116,22 @@ def extract_claims_from_review_fenice(review):
     return all_claims
 
 
-def extract_claims_from_review_gemma(review):
+def extract_claims_from_review_gemma(review, model: str = "google/gemma-3-12b-it"):
+    """Extract claims using a Gemma model.
+
+    Original code ran `google/gemma-7b-it` locally in 4-bit. With no GPU we now
+    call Gemma via OpenRouter (default `google/gemma-3-12b-it` — closest
+    available analogue). The prompt and post-processing are unchanged.
+    """
     try:
-        pipe = get_gemma_pipeline()
-        prompt = f"Extract the main claims from the following review text. List each claim on a new line:\n\nReview: {review}\n\nClaims:"
-        result = pipe(prompt, max_new_tokens=200, do_sample=True, temperature=0.7)
-        claims_text = result[0]['generated_text'].split("Claims:")[-1].strip()
-        return [c.strip() for c in claims_text.split('\n') if c.strip()]
+        from claim_verification.utils.llm_client import call_llm
+        prompt = (f"Extract the main claims from the following review text. "
+                  f"List each claim on a new line:\n\nReview: {review}\n\nClaims:")
+        text = call_llm(model=model, user=prompt, max_tokens=512, temperature=0.7) or ""
+        # Match original parsing: split off the "Claims:" header if present.
+        if "Claims:" in text:
+            text = text.split("Claims:", 1)[-1]
+        return [c.strip(" -•*") for c in text.split("\n") if c.strip()]
     except Exception as e:
         print(f"Error with Gemma extraction: {e}")
         sentences = review.split('.')
@@ -190,7 +206,7 @@ def retrieve_top_k_evidences_sbert(query: str, chunks: list, top_k: int = 3) -> 
         model_name = "sentence-transformers/all-MiniLM-L6-v2"
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         model = AutoModel.from_pretrained(model_name)
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        device = _best_device()
         model = model.to(device)
 
         query_tokens = tokenizer(query, return_tensors="pt", padding=True, truncation=True)
@@ -228,7 +244,7 @@ def retrieve_top_k_evidences_faiss(query: str, chunks: list, top_k: int = 3) -> 
         model_name = "sentence-transformers/all-MiniLM-L6-v2"
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         model = AutoModel.from_pretrained(model_name)
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        device = _best_device()
         model = model.to(device)
 
         chunk_embeddings = []
@@ -260,6 +276,28 @@ def retrieve_top_k_evidences_faiss(query: str, chunks: list, top_k: int = 3) -> 
         return []
 
 
+def _get_bi_encoder(model_name: str, device):
+    """Load bi-encoder tokenizer+model once and cache at module level."""
+    global _bi_encoder_cache
+    if model_name not in _bi_encoder_cache:
+        tok = AutoTokenizer.from_pretrained(model_name, local_files_only=True)
+        mdl = AutoModel.from_pretrained(model_name, local_files_only=True, low_cpu_mem_usage=False)
+        mdl = mdl.to(device)
+        mdl.eval()
+        _bi_encoder_cache[model_name] = (tok, mdl)
+    return _bi_encoder_cache[model_name]
+
+
+def _get_cross_encoder(model_name: str, device):
+    """Load cross-encoder once and cache at module level."""
+    global _cross_encoder_cache
+    if model_name not in _cross_encoder_cache:
+        _cross_encoder_cache[model_name] = CrossEncoder(
+            model_name, max_length=512, device=device, local_files_only=True
+        )
+    return _cross_encoder_cache[model_name]
+
+
 def retrieve_top_k_evidences_biencoder_crossencoder(
     query: str, chunks: list, top_k: int = 3, initial_k: int = 20,
     bi_encoder_model: str = 'BAAI/bge-large-en-v1.5',
@@ -275,11 +313,8 @@ def retrieve_top_k_evidences_biencoder_crossencoder(
     top_k = min(top_k, initial_k)
 
     try:
-        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        bi_tokenizer = AutoTokenizer.from_pretrained(bi_encoder_model)
-        bi_model = AutoModel.from_pretrained(bi_encoder_model, low_cpu_mem_usage=False)
-        bi_model = bi_model.to(device)
-        bi_model.eval()
+        device = _best_device()
+        bi_tokenizer, bi_model = _get_bi_encoder(bi_encoder_model, device)
 
         def get_embeddings(texts, instruction_prefix=""):
             embeddings = []
@@ -301,7 +336,13 @@ def retrieve_top_k_evidences_biencoder_crossencoder(
         q_prefix = "query: " if 'e5' in bi_encoder_model.lower() else ""
         p_prefix = "passage: " if 'e5' in bi_encoder_model.lower() else ""
         query_emb = get_embeddings([query], instruction_prefix=q_prefix)
-        chunk_emb = get_embeddings(chunk_texts, instruction_prefix=p_prefix)
+
+        # Cache chunk embeddings by content hash to avoid re-embedding the same paper's chunks
+        import hashlib
+        chunk_key = (bi_encoder_model, hashlib.md5("".join(chunk_texts).encode()).hexdigest())
+        if chunk_key not in _chunk_embedding_cache:
+            _chunk_embedding_cache[chunk_key] = get_embeddings(chunk_texts, instruction_prefix=p_prefix)
+        chunk_emb = _chunk_embedding_cache[chunk_key]
 
         similarities = torch.matmul(query_emb, chunk_emb.T).squeeze(0)
         top_initial_indices = torch.argsort(similarities, descending=True)[:initial_k]
@@ -311,7 +352,7 @@ def retrieve_top_k_evidences_biencoder_crossencoder(
         if not CROSSENCODER_AVAILABLE:
             return top_initial_chunks[:top_k]
 
-        cross_encoder = CrossEncoder(cross_encoder_model, max_length=512, device=device)
+        cross_encoder = _get_cross_encoder(cross_encoder_model, device)
         pairs = [[query, text] for text in top_initial_texts]
         cross_scores = cross_encoder.predict(pairs, show_progress_bar=False)
         ranked_indices = np.argsort(cross_scores)[::-1]
@@ -354,7 +395,7 @@ def retrieve_top_k_evidences_rrf(query: str, chunks: list, top_k: int = 3, initi
                 model_name = "sentence-transformers/all-MiniLM-L6-v2"
                 tokenizer = AutoTokenizer.from_pretrained(model_name)
                 model = AutoModel.from_pretrained(model_name)
-                device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+                device = _best_device()
                 model = model.to(device)
                 model.eval()
 
@@ -419,7 +460,7 @@ def retrieve_top_k_evidences_bm25_crossencoder(query: str, chunks: list, top_k: 
                     break
 
         if CROSSENCODER_AVAILABLE and len(top_candidates) > top_k:
-            device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+            device = _best_device()
             cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2', max_length=512, device=device)
             pairs = [[query, text] for text in top_candidate_texts]
             cross_scores = cross_encoder.predict(pairs, show_progress_bar=False)
@@ -484,30 +525,38 @@ def entailment_for_claim(claim: str, evidences: list, model: str) -> dict:
     )
 
     try:
+        # Route by model id family.
         is_openai_model = (
-            model.startswith('gpt-') or model.startswith('o3-') or model.startswith('o4-')
+            model.startswith('gpt-') or model.startswith('o3-') or model.startswith('o4-') or model.startswith('o1-')
             or model in ['gpt-4', 'gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'gpt-3.5-turbo']
         )
+        is_anthropic_model = model.startswith('claude-')
+        is_gemini_model = model.startswith('gemini-')
+        is_openrouter_model = '/' in model  # vendor/model form, e.g. qwen/qwen3-8b
 
-        if is_openai_model and openai_client:
-            response = openai_client.chat.completions.create(
+        if is_anthropic_model or is_gemini_model:
+            # Delegate to the unified client wrapper for non-OpenAI vendors.
+            from claim_verification.utils.llm_client import call_llm
+            response_text = call_llm(model=model, user=prompt, max_tokens=1024)
+        elif is_openai_model and openai_client:
+            # OpenAI reasoning models (gpt-5*, o4-mini) require max_completion_tokens.
+            kwargs = {'model': model, 'messages': [{'role': 'user', 'content': prompt}]}
+            if model.startswith(('gpt-5', 'o4-', 'o3-', 'o1-')):
+                kwargs['max_completion_tokens'] = 1024
+            else:
+                kwargs['max_tokens'] = 512
+                kwargs['temperature'] = 0.0
+            response = openai_client.chat.completions.create(**kwargs)
+            response_text = (response.choices[0].message.content or "").strip()
+        elif is_openrouter_model and openrouter_client:
+            # OpenRouter (replaces the local vLLM endpoint for Qwen / Gemma / etc.)
+            response = openrouter_client.chat.completions.create(
                 model=model, messages=[{'role': 'user', 'content': prompt}],
+                temperature=0.0, max_tokens=512,
             )
-            response_text = response.choices[0].message.content.strip()
-        elif VLLM_AVAILABLE:
-            if 'gpt-oss' in model.lower() or '20b' in model.lower():
-                client = vllm_clients.get('gpt-oss', vllm_clients.get('qwen'))
-            else:
-                client = vllm_clients.get('qwen', list(vllm_clients.values())[0] if vllm_clients else None)
-            if client:
-                response = client.chat.completions.create(
-                    model=model, messages=[{'role': 'user', 'content': prompt}],
-                    temperature=0.0, max_tokens=512, top_p=0.9, seed=42,
-                )
-                response_text = response.choices[0].message.content.strip()
-            else:
-                raise Exception("No vLLM client available")
+            response_text = (response.choices[0].message.content or "").strip()
         else:
+            # Last-resort fallback to local Ollama (unlikely path).
             response = chat(model=model, messages=[{'role': 'user', 'content': prompt}])
             response_text = response['message']['content'].strip()
 
@@ -525,3 +574,56 @@ def entailment_for_claim(claim: str, evidences: list, model: str) -> dict:
 
     except Exception as e:
         return {'result': 'Undetermined', 'justification': f'Error: {str(e)}', 'evidence_sections': evidence_sections}
+
+
+async def entailment_for_claim_async(claim: str, evidences: list, model: str) -> dict:
+    """Async version — builds the same prompt then calls call_llm_async."""
+    import json as _json
+    evidence_texts = []
+    evidence_sections = []
+    for ev in evidences:
+        if isinstance(ev, dict):
+            evidence_texts.append(ev.get("text", str(ev)))
+            evidence_sections.append(ev.get("section", "unknown"))
+        else:
+            evidence_texts.append(str(ev))
+            evidence_sections.append("unknown")
+
+    prompt = (
+        "You are a factual-verification API. Respond **ONLY** with a valid JSON object -- no other text.\n\n"
+        "Label definitions you must use:\n"
+        "  - Supported: The evidence fully backs the claim with no gaps or contradictions.\n"
+        "  - Partially Supported: Some parts align, but other details are missing or unclear.\n"
+        "  - Contradicted: The claim directly conflicts with the evidence.\n"
+        "  - Not Determined: The evidence is insufficient to confirm or deny the claim.\n\n"
+        "Task: Classify the claim using exactly one of the four labels above.\n\n"
+        f"CLAIM:\n{claim}\n\n"
+        "EVIDENCE SNIPPETS (each separated by '---'):\n"
+        + "\n---\n".join(evidence_texts)
+        + "\n\n"
+        "Return exactly:\n"
+        "{\n"
+        '  "result": "<Supported|Partially Supported|Contradicted|Not Determined>",\n'
+        '  "justification": "<brief explanation>"\n'
+        "}"
+    )
+
+    from claim_verification.utils.llm_client import call_llm_async
+    try:
+        response_text = await call_llm_async(model=model, user=prompt, max_tokens=1024)
+        try:
+            result = _json.loads(response_text)
+            result['evidence_sections'] = evidence_sections
+            return result
+        except _json.JSONDecodeError:
+            import re as _re
+            m = _re.search(r'\{.*\}', response_text, _re.DOTALL)
+            if m:
+                result = _json.loads(m.group())
+                result['evidence_sections'] = evidence_sections
+                return result
+            return {'result': 'Undetermined', 'justification': f'Failed to parse: {response_text[:100]}',
+                    'evidence_sections': evidence_sections}
+    except Exception as e:
+        return {'result': 'Undetermined', 'justification': f'Error: {str(e)}',
+                'evidence_sections': evidence_sections}

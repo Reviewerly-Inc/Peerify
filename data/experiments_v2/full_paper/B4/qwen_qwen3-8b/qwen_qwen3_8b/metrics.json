@@ -1,0 +1,82 @@
+{
+  "benchmark_path": "/Users/alirezadaghigh/Desktop/Peerify/data/valid_benchmarks/B4_agreement.jsonl",
+  "benchmark_name": "B4_agreement",
+  "model_provider": "openrouter",
+  "model_name": "qwen/qwen3-8b",
+  "total_processed": 175,
+  "total_skipped": 0,
+  "classification_metrics": {
+    "accuracy": 0.32571428571428573,
+    "per_label": {
+      "Contradicted": {
+        "precision": 0.4074074074074074,
+        "recall": 0.2558139534883721,
+        "f1": 0.3142857142857143,
+        "support": 43
+      },
+      "Not Determined": {
+        "precision": 0.5,
+        "recall": 0.09090909090909091,
+        "f1": 0.15384615384615385,
+        "support": 33
+      },
+      "Partially Supported": {
+        "precision": 0.28,
+        "recall": 0.717948717948718,
+        "f1": 0.4028776978417266,
+        "support": 39
+      },
+      "Supported": {
+        "precision": 0.35714285714285715,
+        "recall": 0.25,
+        "f1": 0.29411764705882354,
+        "support": 60
+      }
+    },
+    "macro_avg": {
+      "precision": 0.38613756613756617,
+      "recall": 0.32866794058654525,
+      "f1": 0.2912818032581046
+    },
+    "weighted_avg": {
+      "precision": 0.37924051398337116,
+      "recall": 0.32571428571428573,
+      "f1": 0.2968599876032317
+    },
+    "confusion_matrix": {
+      "labels": [
+        "Contradicted",
+        "Not Determined",
+        "Partially Supported",
+        "Supported"
+      ],
+      "matrix": [
+        [
+          11,
+          0,
+          16,
+          16
+        ],
+        [
+          9,
+          3,
+          16,
+          5
+        ],
+        [
+          5,
+          0,
+          28,
+          6
+        ],
+        [
+          2,
+          3,
+          40,
+          15
+        ]
+      ]
+    }
+  },
+  "dry_run": false
+}

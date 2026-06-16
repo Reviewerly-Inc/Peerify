@@ -33,6 +33,14 @@ from claim_verification.preprocessing import chunking as _chunking
 from claim_verification.config import DataStructure, as_str
 
 
+def _oracle_retriever_fn(claim: str, chunks: list, top_k: int = 10) -> list:
+    """Placeholder — oracle cache is always pre-built from ground-truth paragraphs."""
+    raise RuntimeError(
+        "Oracle retriever requires a pre-built cache. "
+        "Run: ./peerify.sh precompute  (or peerify.sh precompute-oracle)"
+    )
+
+
 RETRIEVER_FUNCS = {
     'bm25': retrieve_top_k_evidences_bm25,
     'tfidf': retrieve_top_k_evidences_tfidf,
@@ -42,6 +50,7 @@ RETRIEVER_FUNCS = {
     'biencoder-crossencoder': retrieve_top_k_evidences_biencoder_crossencoder,
     'bm25-cross': retrieve_top_k_evidences_bm25_crossencoder,
     'bm25-crossencoder': retrieve_top_k_evidences_bm25_crossencoder,
+    'oracle': _oracle_retriever_fn,  # upper-bound baseline for B1 (pre-built cache only)
 }
 
 

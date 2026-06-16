@@ -1,0 +1,120 @@
+{
+  "benchmark_path": "/Users/alirezadaghigh/Desktop/Peerify/data/valid_benchmarks/B1_golden_supported.jsonl",
+  "benchmark_name": "B1_golden_supported",
+  "model_provider": "openrouter",
+  "model_name": "qwen/qwen-2.5-7b-instruct",
+  "total_processed": 439,
+  "total_skipped": 61,
+  "classification_metrics": {
+    "accuracy": 0.7767653758542141,
+    "per_label": {
+      "Contradicted": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "Not Determined": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "Partial Supported": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "Partially Supported": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "Supported": {
+        "precision": 1.0,
+        "recall": 0.7767653758542141,
+        "f1": 0.8743589743589744,
+        "support": 439
+      },
+      "partially_supported": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      }
+    },
+    "macro_avg": {
+      "precision": 0.16666666666666666,
+      "recall": 0.12946089597570234,
+      "f1": 0.14572649572649574
+    },
+    "weighted_avg": {
+      "precision": 1.0,
+      "recall": 0.7767653758542141,
+      "f1": 0.8743589743589744
+    },
+    "confusion_matrix": {
+      "labels": [
+        "Contradicted",
+        "Not Determined",
+        "Partial Supported",
+        "Partially Supported",
+        "Supported",
+        "partially_supported"
+      ],
+      "matrix": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          19,
+          28,
+          1,
+          49,
+          341,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    }
+  },
+  "dry_run": false
+}

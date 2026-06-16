@@ -1,0 +1,148 @@
+{
+  "benchmark_path": "/Users/alirezadaghigh/Desktop/Peerify/data/valid_benchmarks/B1_golden_supported.jsonl",
+  "benchmark_name": "B1_golden_supported",
+  "retriever": "bm25-cross",
+  "llm_model": "gpt-5-mini",
+  "top_k": 10,
+  "total_processed": 500,
+  "total_skipped": 0,
+  "retrieval_metrics": {
+    "recall@1": {
+      "mean": 0.286,
+      "std": 0.4518893669915236,
+      "median": 0.0,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "ndcg@1": {
+      "mean": 0.286,
+      "std": 0.4518893669915236,
+      "median": 0.0,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "recall@3": {
+      "mean": 0.464,
+      "std": 0.4987023160162784,
+      "median": 0.0,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "ndcg@3": {
+      "mean": 0.48628082677143486,
+      "std": 0.6123215877486726,
+      "median": 0.0,
+      "min": 0.0,
+      "max": 2.1309297535714578
+    },
+    "recall@5": {
+      "mean": 0.568,
+      "std": 0.49535441857320706,
+      "median": 1.0,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "ndcg@5": {
+      "mean": 0.6168377046163015,
+      "std": 0.7334651552442374,
+      "median": 0.43067655807339306,
+      "min": 0.0,
+      "max": 2.9484591188793923
+    },
+    "recall@10": {
+      "mean": 0.688,
+      "std": 0.4633098315382483,
+      "median": 1.0,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "ndcg@10": {
+      "mean": 0.8214136253775061,
+      "std": 0.9873643050094157,
+      "median": 0.5,
+      "min": 0.0,
+      "max": 4.543559338088346
+    },
+    "mrr": {
+      "mean": 0.40512777777777775,
+      "std": 0.40770635374769837,
+      "median": 0.25,
+      "min": 0.0,
+      "max": 1.0
+    }
+  },
+  "classification_metrics": {
+    "accuracy": 0.856,
+    "per_label": {
+      "Contradicted": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "Not Determined": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "Partially Supported": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "Supported": {
+        "precision": 1.0,
+        "recall": 0.856,
+        "f1": 0.9224137931034483,
+        "support": 500
+      }
+    },
+    "macro_avg": {
+      "precision": 0.25,
+      "recall": 0.214,
+      "f1": 0.23060344827586207
+    },
+    "weighted_avg": {
+      "precision": 1.0,
+      "recall": 0.856,
+      "f1": 0.9224137931034483
+    },
+    "confusion_matrix": {
+      "labels": [
+        "Contradicted",
+        "Not Determined",
+        "Partially Supported",
+        "Supported"
+      ],
+      "matrix": [
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          27,
+          33,
+          428
+        ]
+      ]
+    }
+  },
+  "dry_run": false
+}

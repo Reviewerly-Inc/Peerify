@@ -107,7 +107,10 @@ class DataStructure:
 
     @property
     def benchmark_dir(self) -> Path:
-        return self.base_dir / "benchmark"
+        # Allow env override so eval scripts can target an alternate benchmark
+        # folder (e.g. valid_benchmarks/) without code changes.
+        subdir = get_env("BENCHMARK_SUBDIR", "benchmark")
+        return self.base_dir / subdir
 
     @property
     def logs_dir(self) -> Path:

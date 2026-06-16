@@ -1,0 +1,82 @@
+{
+  "benchmark_path": "/Users/alirezadaghigh/Desktop/Peerify/data/valid_benchmarks/B5_verifiable.jsonl",
+  "benchmark_name": "B5_verifiable",
+  "model_provider": "claude",
+  "model_name": "claude-haiku-4-5-20251001",
+  "total_processed": 131,
+  "total_skipped": 0,
+  "classification_metrics": {
+    "accuracy": 0.4122137404580153,
+    "per_label": {
+      "Contradicted": {
+        "precision": 0.2987012987012987,
+        "recall": 0.92,
+        "f1": 0.45098039215686275,
+        "support": 25
+      },
+      "Not Determined": {
+        "precision": 1.0,
+        "recall": 0.38095238095238093,
+        "f1": 0.5517241379310345,
+        "support": 21
+      },
+      "Partially Supported": {
+        "precision": 0.5,
+        "recall": 0.27586206896551724,
+        "f1": 0.35555555555555557,
+        "support": 29
+      },
+      "Supported": {
+        "precision": 0.5,
+        "recall": 0.26785714285714285,
+        "f1": 0.3488372093023256,
+        "support": 56
+      }
+    },
+    "macro_avg": {
+      "precision": 0.5746753246753247,
+      "recall": 0.46116789819376025,
+      "f1": 0.4267743237364446
+    },
+    "weighted_avg": {
+      "precision": 0.5417368890651333,
+      "recall": 0.4122137404580153,
+      "f1": 0.4023413094085087
+    },
+    "confusion_matrix": {
+      "labels": [
+        "Contradicted",
+        "Not Determined",
+        "Partially Supported",
+        "Supported"
+      ],
+      "matrix": [
+        [
+          23,
+          0,
+          1,
+          1
+        ],
+        [
+          6,
+          8,
+          4,
+          3
+        ],
+        [
+          10,
+          0,
+          8,
+          11
+        ],
+        [
+          38,
+          0,
+          3,
+          15
+        ]
+      ]
+    }
+  },
+  "dry_run": false
+}

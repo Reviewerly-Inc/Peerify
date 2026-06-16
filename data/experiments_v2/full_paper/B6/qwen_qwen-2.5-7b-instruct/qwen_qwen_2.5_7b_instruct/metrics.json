@@ -1,0 +1,100 @@
+{
+  "benchmark_path": "/Users/alirezadaghigh/Desktop/Peerify/data/valid_benchmarks/B6_human.jsonl",
+  "benchmark_name": "B6_human",
+  "model_provider": "openrouter",
+  "model_name": "qwen/qwen-2.5-7b-instruct",
+  "total_processed": 150,
+  "total_skipped": 0,
+  "classification_metrics": {
+    "accuracy": 0.2733333333333333,
+    "per_label": {
+      "Contracted": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "Contradicted": {
+        "precision": 0.14285714285714285,
+        "recall": 0.11764705882352941,
+        "f1": 0.12903225806451613,
+        "support": 34
+      },
+      "Not Determined": {
+        "precision": 0.14634146341463414,
+        "recall": 0.2857142857142857,
+        "f1": 0.1935483870967742,
+        "support": 21
+      },
+      "Partially Supported": {
+        "precision": 0.3902439024390244,
+        "recall": 0.3137254901960784,
+        "f1": 0.34782608695652173,
+        "support": 51
+      },
+      "Supported": {
+        "precision": 0.38461538461538464,
+        "recall": 0.3409090909090909,
+        "f1": 0.3614457831325301,
+        "support": 44
+      }
+    },
+    "macro_avg": {
+      "precision": 0.2128115786652372,
+      "recall": 0.2115991851285969,
+      "f1": 0.20637050305006843
+    },
+    "weighted_avg": {
+      "precision": 0.29837219690878225,
+      "recall": 0.2733333333333333,
+      "f1": 0.28062905197226495
+    },
+    "confusion_matrix": {
+      "labels": [
+        "Contracted",
+        "Contradicted",
+        "Not Determined",
+        "Partially Supported",
+        "Supported"
+      ],
+      "matrix": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          4,
+          7,
+          14,
+          9
+        ],
+        [
+          0,
+          7,
+          6,
+          2,
+          6
+        ],
+        [
+          1,
+          9,
+          16,
+          16,
+          9
+        ],
+        [
+          0,
+          8,
+          12,
+          9,
+          15
+        ]
+      ]
+    }
+  },
+  "dry_run": false
+}

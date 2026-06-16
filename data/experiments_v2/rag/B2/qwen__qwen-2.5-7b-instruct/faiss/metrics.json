@@ -1,0 +1,168 @@
+{
+  "benchmark_path": "/Users/alirezadaghigh/Desktop/Peerify/data/valid_benchmarks/B2_reviewer_author.jsonl",
+  "benchmark_name": "B2_reviewer_author",
+  "retriever": "faiss",
+  "llm_model": "qwen/qwen-2.5-7b-instruct",
+  "top_k": 10,
+  "total_processed": 800,
+  "total_skipped": 0,
+  "retrieval_metrics": {},
+  "classification_metrics": {
+    "accuracy": 0.32,
+    "per_label": {
+      "Contradicted": {
+        "precision": 0.18627450980392157,
+        "recall": 0.12837837837837837,
+        "f1": 0.152,
+        "support": 148
+      },
+      "Not Determined": {
+        "precision": 0.14150943396226415,
+        "recall": 0.22388059701492538,
+        "f1": 0.17341040462427745,
+        "support": 67
+      },
+      "Partial": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "Partial Support": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "Partially Supported": {
+        "precision": 0.4040114613180516,
+        "recall": 0.47157190635451507,
+        "f1": 0.4351851851851852,
+        "support": 299
+      },
+      "Partial\u652f\u6301": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "Supported": {
+        "precision": 0.3628691983122363,
+        "recall": 0.3006993006993007,
+        "f1": 0.32887189292543023,
+        "support": 286
+      },
+      "Unsupported": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      }
+    },
+    "macro_avg": {
+      "precision": 0.1368330754245592,
+      "recall": 0.14056627280588996,
+      "f1": 0.13618343534186161
+    },
+    "weighted_avg": {
+      "precision": 0.32703722147231135,
+      "recall": 0.32625,
+      "f1": 0.3228652860710875
+    },
+    "confusion_matrix": {
+      "labels": [
+        "Contradicted",
+        "Not Determined",
+        "Partial",
+        "Partial Support",
+        "Partially Supported",
+        "Partial\u652f\u6301",
+        "Supported",
+        "Unsupported"
+      ],
+      "matrix": [
+        [
+          19,
+          18,
+          1,
+          0,
+          64,
+          0,
+          45,
+          1
+        ],
+        [
+          6,
+          15,
+          0,
+          0,
+          24,
+          0,
+          22,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          43,
+          28,
+          0,
+          2,
+          141,
+          1,
+          84,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          34,
+          45,
+          0,
+          0,
+          120,
+          0,
+          86,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    }
+  },
+  "dry_run": false
+}

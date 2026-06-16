@@ -1,0 +1,118 @@
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] stored 500 new retrieval results -> data/experiments_v2/retrieval_cache/B1_golden_supported__faiss__top10.jsonl
+[cache-only] done: B1_golden_supported/faiss/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] stored 500 new retrieval results -> data/experiments_v2/retrieval_cache/B1_golden_supported__faiss__top10.jsonl
+[cache-only] done: B1_golden_supported/faiss/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+'(ProtocolError('Connection aborted.', TimeoutError(60, 'Operation timed out')), '(Request ID: 9a650c52-dc9e-42a7-a970-d5f2775cddb7)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ProtocolError('Connection aborted.', TimeoutError(60, 'Operation timed out')), '(Request ID: 24f6fb3e-98d7-4905-950e-b7c811c4189c)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ProtocolError('Connection aborted.', TimeoutError(60, 'Operation timed out')), '(Request ID: d873995b-419a-4ede-bc31-cb6ba24f36ef)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: dc9c4196-eeef-451c-a28e-5082f76519ed)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: e89894af-1c6c-4c4e-8a9c-7077a06b48ee)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 804dcf92-8429-4954-bbff-3005d3d9f1c3)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 8d142388-da95-4cf2-a538-6711e9ba6b09)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 3a17dc1f-57f3-4d1b-8b2b-2b475141955f)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ProtocolError('Connection aborted.', TimeoutError(60, 'Operation timed out')), '(Request ID: b1c78bc0-beb7-4818-bf98-f8d698c80d9f)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 2s [Retry 2/5].
+'(ProtocolError('Connection aborted.', TimeoutError(60, 'Operation timed out')), '(Request ID: f0f8fe76-04de-4fb5-9f71-853ffbd2060e)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ProtocolError('Connection aborted.', TimeoutError(60, 'Operation timed out')), '(Request ID: 9803d642-818c-429c-8a5b-dfca65e676cc)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 4f41a963-159d-4bc8-b15f-45dc88c26ba1)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ProtocolError('Connection aborted.', TimeoutError(60, 'Operation timed out')), '(Request ID: 34f2f16b-a3b2-456a-8c85-2936793d3829)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ProtocolError('Connection aborted.', TimeoutError(60, 'Operation timed out')), '(Request ID: ad95a527-76ef-4148-b478-b4273e5fd1ff)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: a7835d2e-4c61-4cf3-aab3-14ea7e90363b)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ProtocolError('Connection aborted.', TimeoutError(60, 'Operation timed out')), '(Request ID: dce9d3da-88f9-437d-b591-a6955ec9ec04)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config.json
+Retrying in 1s [Retry 1/5].
+'(ProtocolError('Connection aborted.', TimeoutError(60, 'Operation timed out')), '(Request ID: a0ed8c64-0735-4f35-98c6-5534c996c428)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ProtocolError('Connection aborted.', TimeoutError(60, 'Operation timed out')), '(Request ID: 857bf870-580d-419b-bb29-71e477ddf53d)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ProtocolError('Connection aborted.', TimeoutError(60, 'Operation timed out')), '(Request ID: bf9972f3-717b-4afc-8c27-efba2746378d)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ProtocolError('Connection aborted.', TimeoutError(60, 'Operation timed out')), '(Request ID: 7e38361c-1004-48f8-8cf1-941618f09f23)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ProtocolError('Connection aborted.', TimeoutError(60, 'Operation timed out')), '(Request ID: 49a9cb23-4672-4067-b188-09353b69ecf3)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 3fa0ace2-121a-4f54-b3a6-c94685db703b)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ProtocolError('Connection aborted.', TimeoutError(60, 'Operation timed out')), '(Request ID: ec2c4bca-fcde-4a69-98c4-4273dd7774a0)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ProtocolError('Connection aborted.', TimeoutError(60, 'Operation timed out')), '(Request ID: 1632747a-14dd-4947-b2d7-cf686266e2a7)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ProtocolError('Connection aborted.', TimeoutError(60, 'Operation timed out')), '(Request ID: 580a7102-8042-4d5e-96c4-83a4161a4b15)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 45543f5e-5a93-4da5-ac24-17e44bc84830)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 24f010b3-6b8e-403e-97a9-8d02bda20e9f)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 9d31227b-092e-4a08-9317-1ab28e758fa1)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 4fd0c090-0152-4b0a-93da-59f5ddc1b2de)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] loaded 500 retrieval results from data/experiments_v2/retrieval_cache/B1_golden_supported__faiss__top10.jsonl
+[cache-only] done: B1_golden_supported/faiss/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] stored 800 new retrieval results -> data/experiments_v2/retrieval_cache/B2_reviewer_author__faiss__top10.jsonl
+[cache-only] done: B2_reviewer_author/faiss/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] loaded 500 retrieval results from data/experiments_v2/retrieval_cache/B1_golden_supported__faiss__top10.jsonl
+[cache-only] done: B1_golden_supported/faiss/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] loaded 800 retrieval results from data/experiments_v2/retrieval_cache/B2_reviewer_author__faiss__top10.jsonl
+[cache-only] done: B2_reviewer_author/faiss/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 885a047e-8aa0-4336-9df2-46de127327a2)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ProtocolError('Connection aborted.', TimeoutError(60, 'Operation timed out')), '(Request ID: ea1cea67-ccee-4b26-9f3d-d9e9376d03d9)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ProtocolError('Connection aborted.', TimeoutError(60, 'Operation timed out')), '(Request ID: fb3cea8f-a5b7-47d3-a007-686d786cfd85)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: df28d9c0-1dd3-48c7-bc8d-e7cfc3f3247d)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ProtocolError('Connection aborted.', TimeoutError(60, 'Operation timed out')), '(Request ID: c2bafc9e-51b6-48b2-a714-e9d7709413a0)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: f5dcb043-dd08-41b5-82b1-f56b85c25b11)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+'(ProtocolError('Connection aborted.', TimeoutError(60, 'Operation timed out')), '(Request ID: 786ca4c0-acc3-42ed-a48e-f1742fb06af9)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json
+Retrying in 1s [Retry 1/5].
+  [cache] stored 800 new retrieval results -> data/experiments_v2/retrieval_cache/B3_reviewer_paper__faiss__top10.jsonl
+[cache-only] done: B3_reviewer_paper/faiss/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] stored 175 new retrieval results -> data/experiments_v2/retrieval_cache/B4_agreement__faiss__top10.jsonl
+[cache-only] done: B4_agreement/faiss/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] stored 131 new retrieval results -> data/experiments_v2/retrieval_cache/B5_verifiable__faiss__top10.jsonl
+[cache-only] done: B5_verifiable/faiss/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] stored 150 new retrieval results -> data/experiments_v2/retrieval_cache/B6_human__faiss__top10.jsonl
+[cache-only] done: B6_human/faiss/top10

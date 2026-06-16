@@ -1,0 +1,188 @@
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/google/auth/__init__.py:54: FutureWarning: You are using a Python version 3.9 past its end of life. Google will update google-auth with critical bug fixes on a best-effort basis, but not with any other fixes or features. Please upgrade your Python version, and then update google-auth.
+  warnings.warn(eol_message.format("3.9"), FutureWarning)
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/google/oauth2/__init__.py:40: FutureWarning: You are using a Python version 3.9 past its end of life. Google will update google-auth with critical bug fixes on a best-effort basis, but not with any other fixes or features. Please upgrade your Python version, and then update google-auth.
+  warnings.warn(eol_message.format("3.9"), FutureWarning)
+✓ OpenAI client initialized
+✓ Anthropic client initialized
+✓ Google Gemini client will be initialized on first use
+
+============================================================
+Processing model: openrouter:qwen/qwen-2.5-7b-instruct
+============================================================
+Processed 10/500 claims...
+Processed 20/500 claims...
+Processed 30/500 claims...
+Processed 40/500 claims...
+Processed 50/500 claims...
+Processed 60/500 claims...
+Processed 70/500 claims...
+Processed 80/500 claims...
+Processed 90/500 claims...
+Processed 100/500 claims...
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing m3RRWWFaVe: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 42601 tokens (41577 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing m3RRWWFaVe: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 42593 tokens (41569 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing m3RRWWFaVe: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 42630 tokens (41606 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing m3RRWWFaVe: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 42630 tokens (41606 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing m3RRWWFaVe: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 42621 tokens (41597 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+Processed 120/500 claims...
+Processed 130/500 claims...
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing wYvuY60SdD: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 40198 tokens (39174 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing wYvuY60SdD: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 40211 tokens (39187 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing wYvuY60SdD: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 40206 tokens (39182 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing wYvuY60SdD: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 40232 tokens (39208 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing wYvuY60SdD: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 40218 tokens (39194 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+Processed 150/500 claims...
+Processed 160/500 claims...
+Processed 170/500 claims...
+Processed 180/500 claims...
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing jrNlWfor7q: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 38250 tokens (37226 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing jrNlWfor7q: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 38245 tokens (37221 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing jrNlWfor7q: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 38232 tokens (37208 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing jrNlWfor7q: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 38226 tokens (37202 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing jrNlWfor7q: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 38247 tokens (37223 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing JbOsMrwjZ3: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 62797 tokens (61773 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing JbOsMrwjZ3: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 62780 tokens (61756 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing JbOsMrwjZ3: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 62783 tokens (61759 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing JbOsMrwjZ3: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 62797 tokens (61773 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing JbOsMrwjZ3: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 62808 tokens (61784 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+Processed 210/500 claims...
+Processed 220/500 claims...
+Processed 230/500 claims...
+Processed 240/500 claims...
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing BmG3NgH5xu: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 37088 tokens (36064 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing BmG3NgH5xu: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 37078 tokens (36054 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing BmG3NgH5xu: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 37064 tokens (36040 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing BmG3NgH5xu: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 37088 tokens (36064 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing BmG3NgH5xu: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 37123 tokens (36099 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing TTrzgEZt9s: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 39025 tokens (38001 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing TTrzgEZt9s: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 39000 tokens (37976 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing TTrzgEZt9s: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 39030 tokens (38006 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing TTrzgEZt9s: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 39010 tokens (37986 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing TTrzgEZt9s: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 39007 tokens (37983 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+Processed 260/500 claims...
+Processed 270/500 claims...
+Processed 280/500 claims...
+Processed 290/500 claims...
+Processed 300/500 claims...
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing oq5EF8parZ: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 36911 tokens (35887 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing oq5EF8parZ: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 36928 tokens (35904 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing oq5EF8parZ: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 36923 tokens (35899 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing oq5EF8parZ: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 36938 tokens (35914 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing oq5EF8parZ: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 36928 tokens (35904 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+Processed 320/500 claims...
+Processed 330/500 claims...
+Processed 340/500 claims...
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing ffNrpcBpi6: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 34098 tokens (33074 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing ffNrpcBpi6: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 34088 tokens (33064 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing ffNrpcBpi6: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 34078 tokens (33054 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing ffNrpcBpi6: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 34091 tokens (33067 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing ffNrpcBpi6: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 34091 tokens (33067 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing npJQ6qS4bg: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 36573 tokens (35549 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing npJQ6qS4bg: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 36587 tokens (35563 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing npJQ6qS4bg: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 36567 tokens (35543 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing npJQ6qS4bg: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 36574 tokens (35550 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing npJQ6qS4bg: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 36558 tokens (35534 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+Processed 360/500 claims...
+Processed 370/500 claims...
+Processed 380/500 claims...
+    [openrouter/qwen/qwen-2.5-7b-instruct] TypeError: retry in 1s
+Error processing IuXR1CCrSi: 'NoneType' object is not subscriptable
+    [openrouter/qwen/qwen-2.5-7b-instruct] TypeError: retry in 1s
+    [openrouter/qwen/qwen-2.5-7b-instruct] TypeError: retry in 1s
+Error processing IuXR1CCrSi: 'NoneType' object is not subscriptable
+Processed 390/500 claims...
+Processed 400/500 claims...
+Processed 410/500 claims...
+Processed 420/500 claims...
+Processed 430/500 claims...
+    [openrouter/qwen/qwen-2.5-7b-instruct] TypeError: retry in 1s
+Error processing g9diuvxN6D: 'NoneType' object is not subscriptable
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing g9diuvxN6D: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 32778 tokens (31754 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing g9diuvxN6D: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 32771 tokens (31747 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] TypeError: retry in 1s
+Error processing g9diuvxN6D: 'NoneType' object is not subscriptable
+Processed 440/500 claims...
+    [openrouter/qwen/qwen-2.5-7b-instruct] TypeError: retry in 1s
+    [openrouter/qwen/qwen-2.5-7b-instruct] TypeError: retry in 1s
+Processed 450/500 claims...
+Processed 460/500 claims...
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing 3fRbP8g2LT: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 33161 tokens (32137 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing 3fRbP8g2LT: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 33168 tokens (32144 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing 3fRbP8g2LT: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 33157 tokens (32133 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing 3fRbP8g2LT: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 33155 tokens (32131 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing 3fRbP8g2LT: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 33185 tokens (32161 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+Processed 480/500 claims...
+Processed 490/500 claims...
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing kmn0BhQk7p: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 45272 tokens (44248 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing kmn0BhQk7p: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 45264 tokens (44240 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing kmn0BhQk7p: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 45271 tokens (44247 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing kmn0BhQk7p: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 45274 tokens (44250 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+    [openrouter/qwen/qwen-2.5-7b-instruct] BadRequestError: retry in 1s
+Error processing kmn0BhQk7p: Error code: 400 - {'error': {'message': "This endpoint's maximum context length is 32768 tokens. However, you requested about 45269 tokens (44245 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DEkRXY8pBvPOihZrfZnHRbiDbo'}
+
+Results saved to: data/experiments_v2/full_paper/B1/qwen_qwen-2.5-7b-instruct/qwen_qwen_2.5_7b_instruct/results.jsonl
+Metrics saved to: data/experiments_v2/full_paper/B1/qwen_qwen-2.5-7b-instruct/qwen_qwen_2.5_7b_instruct/metrics.json
+Accuracy: 0.7768
+
+============================================================
+Summary
+============================================================
+openrouter:qwen/qwen-2.5-7b-instruct: Accuracy = 0.7768

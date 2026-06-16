@@ -53,8 +53,10 @@ from claim_verification.config import DataStructure, DEFAULT_MODEL
 # OpenAI API key from environment
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 
-# Default LLM model for judging (gpt-5-mini)
-LLM_JUDGE_MODEL = "gpt-5-mini"
+# Default LLM model for the LLM-as-a-judge step.
+# Switched from gpt-5-mini → claude-sonnet-4-6 per project decision (May 2026)
+# to use a separate-vendor judge from the labeler being audited.
+LLM_JUDGE_MODEL = "claude-sonnet-4-6"
 
 
 def get_openai_client() -> Optional[OpenAI]:
@@ -69,37 +71,18 @@ def get_openai_client() -> Optional[OpenAI]:
 
 def call_openai_llm(prompt: str, system_prompt: str = "", model: str = None) -> Optional[str]:
     """
-    Call OpenAI LLM with given prompt.
-    
-    Args:
-        prompt: User prompt
-        system_prompt: System prompt
-        model: Model name (defaults to LLM_JUDGE_MODEL)
-        
-    Returns:
-        Response text or None on error
+    Call the configured judge LLM with given prompt.
+
+    Despite the legacy name, this routes through the unified LLM client which
+    handles OpenAI / Anthropic / Gemini / OpenRouter based on the model id.
     """
     if model is None:
         model = LLM_JUDGE_MODEL
-    
-    client = get_openai_client()
-    if not client:
-        return None
-    
     try:
-        messages = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        messages.append({"role": "user", "content": prompt})
-        
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-        )
-        
-        return response.choices[0].message.content.strip()
+        from claim_verification.utils.llm_client import call_llm
+        return call_llm(model=model, system=system_prompt, user=prompt, max_tokens=2048)
     except Exception as e:
-        print(f"Error calling OpenAI: {e}")
+        print(f"Error calling LLM judge ({model}): {e}")
         return None
 
 

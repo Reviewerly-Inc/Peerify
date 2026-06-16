@@ -1,0 +1,29 @@
+{
+  "generated": "2026-05-03T18:36:48.777980",
+  "judge_model": "claude-opus-4-7",
+  "B2": {
+    "mode": "b2",
+    "total_records": 800,
+    "disagreements_judged": 320,
+    "agreement_rows": 480,
+    "winner_counts": {
+      "gpt5mini": 158,
+      "sonnet46": 136,
+      "neither": 26
+    },
+    "errors": 0
+  },
+  "B3": {
+    "mode": "b3",
+    "total_records": 800,
+    "disagreements_judged": 341,
+    "agreement_rows": 459,
+    "winner_counts": {
+      "gpt5mini": 168,
+      "sonnet46": 137,
+      "neither": 35,
+      "error": 1
+    },
+    "errors": 1
+  }
+}

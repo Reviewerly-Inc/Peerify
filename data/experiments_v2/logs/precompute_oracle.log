@@ -1,0 +1,8 @@
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] stored 500 new retrieval results -> data/experiments_v2/retrieval_cache/B1_golden_supported__oracle__top10.jsonl
+[cache-only] done: B1_golden_supported/oracle/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] loaded 500 retrieval results from data/experiments_v2/retrieval_cache/B1_golden_supported__oracle__top10.jsonl
+[cache-only] done: B1_golden_supported/oracle/top10

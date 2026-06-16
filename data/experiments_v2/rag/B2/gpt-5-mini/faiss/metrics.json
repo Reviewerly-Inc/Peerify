@@ -1,0 +1,84 @@
+{
+  "benchmark_path": "/Users/alirezadaghigh/Desktop/Peerify/data/valid_benchmarks/B2_reviewer_author.jsonl",
+  "benchmark_name": "B2_reviewer_author",
+  "retriever": "faiss",
+  "llm_model": "gpt-5-mini",
+  "top_k": 10,
+  "total_processed": 800,
+  "total_skipped": 0,
+  "retrieval_metrics": {},
+  "classification_metrics": {
+    "accuracy": 0.29375,
+    "per_label": {
+      "Contradicted": {
+        "precision": 0.18209876543209877,
+        "recall": 0.39864864864864863,
+        "f1": 0.25,
+        "support": 148
+      },
+      "Not Determined": {
+        "precision": 0.1503267973856209,
+        "recall": 0.34328358208955223,
+        "f1": 0.20909090909090908,
+        "support": 67
+      },
+      "Partially Supported": {
+        "precision": 0.47368421052631576,
+        "recall": 0.2709030100334448,
+        "f1": 0.3446808510638298,
+        "support": 299
+      },
+      "Supported": {
+        "precision": 0.3684210526315789,
+        "recall": 0.1958041958041958,
+        "f1": 0.2557077625570776,
+        "support": 286
+      }
+    },
+    "macro_avg": {
+      "precision": 0.2936327064939036,
+      "recall": 0.3021598591439604,
+      "f1": 0.26486988067795414
+    },
+    "weighted_avg": {
+      "precision": 0.355028140885984,
+      "recall": 0.27375,
+      "f1": 0.2840013568356252
+    },
+    "confusion_matrix": {
+      "labels": [
+        "Contradicted",
+        "Not Determined",
+        "Partially Supported",
+        "Supported"
+      ],
+      "matrix": [
+        [
+          59,
+          35,
+          39,
+          15
+        ],
+        [
+          24,
+          23,
+          8,
+          12
+        ],
+        [
+          105,
+          44,
+          81,
+          69
+        ],
+        [
+          136,
+          51,
+          43,
+          56
+        ]
+      ]
+    }
+  },
+  "dry_run": false
+}

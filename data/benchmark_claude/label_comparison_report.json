@@ -1,0 +1,227 @@
+{
+  "generated": "2026-05-03T16:43:50.080391",
+  "B2": {
+    "n": 800,
+    "agree": 480,
+    "rate": 0.6,
+    "dist_gpt5mini": {
+      "Supported": 286,
+      "Partially Supported": 299,
+      "Contradicted": 148,
+      "Not Determined": 67
+    },
+    "dist_sonnet46": {
+      "Supported": 158,
+      "Partially Supported": 390,
+      "Contradicted": 163,
+      "Not Determined": 89
+    },
+    "confusion": {
+      "Supported": {
+        "Supported": 126,
+        "Partially Supported": 107,
+        "Contradicted": 42,
+        "Not Determined": 11
+      },
+      "Partially Supported": {
+        "Supported": 23,
+        "Partially Supported": 220,
+        "Contradicted": 34,
+        "Not Determined": 22
+      },
+      "Contradicted": {
+        "Supported": 4,
+        "Partially Supported": 58,
+        "Contradicted": 82,
+        "Not Determined": 4
+      },
+      "Not Determined": {
+        "Supported": 5,
+        "Partially Supported": 5,
+        "Contradicted": 5,
+        "Not Determined": 52
+      }
+    },
+    "agreement_by_decision": {
+      "Poster": {
+        "agree": 251,
+        "total": 421,
+        "rate": 0.5961995249406176
+      },
+      "Spotlight": {
+        "agree": 51,
+        "total": 72,
+        "rate": 0.7083333333333334
+      },
+      "Oral": {
+        "agree": 12,
+        "total": 20,
+        "rate": 0.6
+      },
+      "Reject": {
+        "agree": 159,
+        "total": 279,
+        "rate": 0.5698924731182796
+      },
+      "Unknown": {
+        "agree": 7,
+        "total": 8,
+        "rate": 0.875
+      }
+    },
+    "agreement_by_type": {
+      "experimental": {
+        "agree": 110,
+        "total": 180,
+        "rate": 0.6111111111111112
+      },
+      "subjective": {
+        "agree": 38,
+        "total": 65,
+        "rate": 0.5846153846153846
+      },
+      "novelty": {
+        "agree": 27,
+        "total": 52,
+        "rate": 0.5192307692307693
+      },
+      "baseline": {
+        "agree": 51,
+        "total": 102,
+        "rate": 0.5
+      },
+      "presentation": {
+        "agree": 54,
+        "total": 86,
+        "rate": 0.627906976744186
+      },
+      "methodology": {
+        "agree": 181,
+        "total": 284,
+        "rate": 0.6373239436619719
+      },
+      "other": {
+        "agree": 4,
+        "total": 9,
+        "rate": 0.4444444444444444
+      },
+      "quantitative": {
+        "agree": 15,
+        "total": 22,
+        "rate": 0.6818181818181818
+      }
+    }
+  },
+  "B3": {
+    "n": 800,
+    "agree": 459,
+    "rate": 0.57375,
+    "dist_gpt5mini": {
+      "Supported": 259,
+      "Not Determined": 251,
+      "Partially Supported": 102,
+      "Contradicted": 188
+    },
+    "dist_sonnet46": {
+      "Partially Supported": 144,
+      "Supported": 206,
+      "Not Determined": 323,
+      "Contradicted": 127
+    },
+    "confusion": {
+      "Supported": {
+        "Supported": 142,
+        "Partially Supported": 43,
+        "Contradicted": 9,
+        "Not Determined": 65
+      },
+      "Partially Supported": {
+        "Supported": 19,
+        "Partially Supported": 40,
+        "Contradicted": 21,
+        "Not Determined": 22
+      },
+      "Contradicted": {
+        "Supported": 18,
+        "Partially Supported": 43,
+        "Contradicted": 84,
+        "Not Determined": 43
+      },
+      "Not Determined": {
+        "Supported": 27,
+        "Partially Supported": 18,
+        "Contradicted": 13,
+        "Not Determined": 193
+      }
+    },
+    "agreement_by_decision": {
+      "Poster": {
+        "agree": 240,
+        "total": 421,
+        "rate": 0.5700712589073634
+      },
+      "Spotlight": {
+        "agree": 41,
+        "total": 72,
+        "rate": 0.5694444444444444
+      },
+      "Oral": {
+        "agree": 10,
+        "total": 20,
+        "rate": 0.5
+      },
+      "Reject": {
+        "agree": 163,
+        "total": 279,
+        "rate": 0.5842293906810035
+      },
+      "Unknown": {
+        "agree": 5,
+        "total": 8,
+        "rate": 0.625
+      }
+    },
+    "agreement_by_type": {
+      "experimental": {
+        "agree": 110,
+        "total": 180,
+        "rate": 0.6111111111111112
+      },
+      "subjective": {
+        "agree": 27,
+        "total": 65,
+        "rate": 0.4153846153846154
+      },
+      "novelty": {
+        "agree": 23,
+        "total": 52,
+        "rate": 0.4423076923076923
+      },
+      "baseline": {
+        "agree": 58,
+        "total": 102,
+        "rate": 0.5686274509803921
+      },
+      "presentation": {
+        "agree": 57,
+        "total": 86,
+        "rate": 0.6627906976744186
+      },
+      "methodology": {
+        "agree": 162,
+        "total": 284,
+        "rate": 0.5704225352112676
+      },
+      "other": {
+        "agree": 6,
+        "total": 9,
+        "rate": 0.6666666666666666
+      },
+      "quantitative": {
+        "agree": 16,
+        "total": 22,
+        "rate": 0.7272727272727273
+      }
+    }
+  }
+}

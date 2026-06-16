@@ -1,0 +1,110 @@
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [Phase 1] Building/loading retrieval cache for bm25/B4_agreement top-10...
+  [cache] loaded 175 retrieval results from data/experiments_v2/retrieval_cache/B4_agreement__bm25__top10.jsonl
+  [Phase 2] Running LLM verification async (8 concurrent)...
+Processed 10/175 claims...
+Processed 20/175 claims...
+Processed 30/175 claims...
+Processed 40/175 claims...
+Processed 50/175 claims...
+Processed 60/175 claims...
+Processed 70/175 claims...
+    [openai/o4-mini] BadRequestError: retry in 1s
+Processed 80/175 claims...
+Processed 90/175 claims...
+Processed 100/175 claims...
+Processed 110/175 claims...
+Processed 120/175 claims...
+Processed 130/175 claims...
+Processed 140/175 claims...
+Processed 150/175 claims...
+Processed 160/175 claims...
+Processed 170/175 claims...
+
+Results saved to: data/experiments_v2/rag/B4/o4-mini/bm25/results.jsonl
+Metrics saved to: data/experiments_v2/rag/B4/o4-mini/bm25/metrics.json
+{
+  "benchmark_path": "/Users/alirezadaghigh/Desktop/Peerify/data/valid_benchmarks/B4_agreement.jsonl",
+  "benchmark_name": "B4_agreement",
+  "retriever": "bm25",
+  "llm_model": "o4-mini",
+  "top_k": 10,
+  "total_processed": 175,
+  "total_skipped": 0,
+  "retrieval_metrics": {},
+  "classification_metrics": {
+    "accuracy": 0.5142857142857142,
+    "per_label": {
+      "Contradicted": {
+        "precision": 0.4383561643835616,
+        "recall": 0.7441860465116279,
+        "f1": 0.5517241379310345,
+        "support": 43
+      },
+      "Not Determined": {
+        "precision": 0.4318181818181818,
+        "recall": 0.5757575757575758,
+        "f1": 0.4935064935064935,
+        "support": 33
+      },
+      "Partially Supported": {
+        "precision": 0.6875,
+        "recall": 0.28205128205128205,
+        "f1": 0.4,
+        "support": 39
+      },
+      "Supported": {
+        "precision": 0.6666666666666666,
+        "recall": 0.4666666666666667,
+        "f1": 0.5490196078431373,
+        "support": 60
+      }
+    },
+    "macro_avg": {
+      "precision": 0.5560852532171026,
+      "recall": 0.5171653927467881,
+      "f1": 0.49856255982016634
+    },
+    "weighted_avg": {
+      "precision": 0.5709246575342466,
+      "recall": 0.5142857142857142,
+      "f1": 0.5060058782133543
+    },
+    "confusion_matrix": {
+      "labels": [
+        "Contradicted",
+        "Not Determined",
+        "Partially Supported",
+        "Supported"
+      ],
+      "matrix": [
+        [
+          32,
+          9,
+          0,
+          2
+        ],
+        [
+          8,
+          19,
+          2,
+          4
+        ],
+        [
+          13,
+          7,
+          11,
+          8
+        ],
+        [
+          20,
+          9,
+          3,
+          28
+        ]
+      ]
+    }
+  },
+  "dry_run": false
+}

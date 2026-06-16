@@ -1,0 +1,282 @@
+{
+  "benchmark_path": "/Users/alirezadaghigh/Desktop/Peerify/data/valid_benchmarks/B3_reviewer_paper.jsonl",
+  "benchmark_name": "B3_reviewer_paper",
+  "model_provider": "openrouter",
+  "model_name": "qwen/qwen-2.5-7b-instruct",
+  "total_processed": 718,
+  "total_skipped": 82,
+  "classification_metrics": {
+    "accuracy": 0.18802228412256267,
+    "per_label": {
+      "Contra": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "Contradicted": {
+        "precision": 0.1510791366906475,
+        "recall": 0.16535433070866143,
+        "f1": 0.15789473684210525,
+        "support": 127
+      },
+      "Contrasdicted": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "Fully Supported": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "Not Determined": {
+        "precision": 0.41025641025641024,
+        "recall": 0.14953271028037382,
+        "f1": 0.2191780821917808,
+        "support": 321
+      },
+      "Partial Supported": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "Partial_supported": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "PartialelySupported": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "Partially Supported": {
+        "precision": 0.10077519379844961,
+        "recall": 0.32098765432098764,
+        "f1": 0.15339233038348082,
+        "support": 81
+      },
+      "Partialy Supported": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "Supported": {
+        "precision": 0.21164021164021163,
+        "recall": 0.21164021164021163,
+        "f1": 0.21164021164021163,
+        "support": 189
+      },
+      "Unsupported": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      }
+    },
+    "macro_avg": {
+      "precision": 0.07281257936547658,
+      "recall": 0.07062624224585289,
+      "f1": 0.061842113421464874
+    },
+    "weighted_avg": {
+      "precision": 0.27721747736726227,
+      "recall": 0.18802228412256267,
+      "f1": 0.19893255532530774
+    },
+    "confusion_matrix": {
+      "labels": [
+        "Contra",
+        "Contradicted",
+        "Contrasdicted",
+        "Fully Supported",
+        "Not Determined",
+        "Partial Supported",
+        "Partial_supported",
+        "PartialelySupported",
+        "Partially Supported",
+        "Partialy Supported",
+        "Supported",
+        "Unsupported"
+      ],
+      "matrix": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          21,
+          0,
+          0,
+          13,
+          0,
+          0,
+          0,
+          55,
+          2,
+          35,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          53,
+          0,
+          1,
+          48,
+          0,
+          0,
+          1,
+          131,
+          0,
+          85,
+          2
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          16,
+          0,
+          0,
+          7,
+          0,
+          0,
+          0,
+          26,
+          3,
+          29,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          49,
+          1,
+          0,
+          49,
+          1,
+          1,
+          0,
+          46,
+          1,
+          40,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    }
+  },
+  "dry_run": false
+}

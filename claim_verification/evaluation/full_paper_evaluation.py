@@ -9,7 +9,7 @@ from typing import List, Dict, Any, Optional
 from collections import defaultdict
 import re
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import asyncio
 from threading import Lock
 import sys
 
@@ -78,6 +78,28 @@ from claim_verification.config import DataStructure
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
 GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY', '')
+
+
+def _is_billing_error(err) -> bool:
+    """Detect billing/quota errors that need indefinite waiting until the
+    user tops up their account."""
+    txt = str(err).lower()
+    return any(k in txt for k in (
+        "credit balance is too low",
+        "insufficient_quota", "insufficient quota",
+        "billing", "you have exceeded your current quota",
+        "exceeded your monthly", "402",
+    ))
+
+
+def _wait_for_credit(label: str, err, attempt: int) -> None:
+    """Sleep on a billing error. Caller retries indefinitely."""
+    wait = min(60 * (2 ** min(attempt - 1, 3)), 300)
+    if attempt == 1 or attempt % 5 == 0:
+        print(f"  [{label}] BILLING ERROR — waiting {wait}s "
+              f"(attempt {attempt}, will retry forever): {str(err)[:140]}",
+              flush=True)
+    time.sleep(wait)
 
 
 def count_tokens(text: str, model: str = "gpt-4o") -> int:
@@ -205,51 +227,49 @@ def verify_with_openai(
         Dictionary with 'result' and 'justification'
     """
     prompt = create_verification_prompt(claim, paper_text)
-    
-    for attempt in range(max_retries):
+
+    attempt = 0
+    billing_attempt = 0
+    while True:
         try:
-            response = client.chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": "You are a factual verification API that responds only with valid JSON."},
-                    {"role": "user", "content": prompt}
-                ],
-            )
-            
-            response_text = response.choices[0].message.content.strip()
-            
-            # Try to parse JSON response
+            kwargs = dict(model=model,
+                          messages=[
+                              {"role": "system", "content": "You are a factual verification API that responds only with valid JSON."},
+                              {"role": "user", "content": prompt},
+                          ])
+            if model.startswith(("gpt-5", "o4-", "o3-", "o1-")):
+                kwargs["max_completion_tokens"] = 1024
+            response = client.chat.completions.create(**kwargs)
+
+            response_text = (response.choices[0].message.content or "").strip()
+
             try:
-                result = json.loads(response_text)
-                return result
+                return json.loads(response_text)
             except json.JSONDecodeError:
-                # Try to extract JSON from response
                 json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
                 if json_match:
-                    result = json.loads(json_match.group())
-                    return result
-                else:
-                    if attempt < max_retries - 1:
-                        time.sleep(1)
-                        continue
-                    return {
-                        'result': 'Not Determined',
-                        'justification': f'Failed to parse JSON response: {response_text[:100]}...'
-                    }
-                    
+                    try:
+                        return json.loads(json_match.group())
+                    except json.JSONDecodeError:
+                        pass
+                if attempt < max_retries - 1:
+                    attempt += 1
+                    time.sleep(1)
+                    continue
+                return {'result': 'Not Determined',
+                        'justification': f'Failed to parse JSON: {response_text[:100]}...'}
+
         except Exception as e:
+            if _is_billing_error(e):
+                billing_attempt += 1
+                _wait_for_credit(f"openai/{model}", e, billing_attempt)
+                continue  # do NOT increment normal attempt counter
             if attempt < max_retries - 1:
-                time.sleep(2 ** attempt)  # Exponential backoff
+                attempt += 1
+                time.sleep(2 ** attempt)
                 continue
-            return {
-                'result': 'Not Determined',
-                'justification': f'Error during OpenAI API call: {str(e)}'
-            }
-    
-    return {
-        'result': 'Not Determined',
-        'justification': 'Failed after all retry attempts'
-    }
+            return {'result': 'Not Determined',
+                    'justification': f'Error during OpenAI API call: {str(e)}'}
 
 
 def verify_with_claude(
@@ -273,15 +293,17 @@ def verify_with_claude(
         Dictionary with 'result' and 'justification'
     """
     prompt = create_verification_prompt(claim, paper_text)
-    
+
     # Determine max_tokens based on model
     # Claude 3.5 Sonnet supports up to 8192, others typically 4096
     if 'sonnet' in model.lower() or '3.5' in model:
         max_tokens = 8192
     else:
         max_tokens = 4096
-    
-    for attempt in range(max_retries):
+
+    attempt = 0
+    billing_attempt = 0
+    while True:
         try:
             # Use streaming for long requests (required for operations >10 minutes)
             # Anthropic models have max_tokens limits
@@ -330,32 +352,38 @@ def verify_with_claude(
                 else:
                     print(response_text)
                     if attempt < max_retries - 1:
+                        attempt += 1
                         time.sleep(1)
                         continue
                     return {
                         'result': 'Not Determined',
                         'justification': f'Failed to parse JSON response: {response_text[:100]}...'
                     }
-                    
+
         except Exception as e:
             error_msg = str(e)
-            # Log the full error for debugging
+            # Billing / quota errors → wait indefinitely until user tops up account.
+            if _is_billing_error(e):
+                billing_attempt += 1
+                _wait_for_credit(f"claude/{model}", e, billing_attempt)
+                continue  # retry, no attempt consumed
+
             print(f"Claude API error (attempt {attempt + 1}/{max_retries}): {error_msg}")
-            
-            # Check if it's a 400 error with specific message
+
+            # Genuine 400s (e.g. prompt too long): give up after retries
             if "400" in error_msg or "Bad Request" in error_msg:
-                # Try with lower max_tokens or check if prompt is too long
                 if attempt < max_retries - 1:
-                    # Try with even lower max_tokens on retry
+                    attempt += 1
                     time.sleep(2 ** attempt)
                     continue
                 return {
                     'result': 'Not Determined',
-                    'justification': f'Claude API 400 error (likely max_tokens or prompt length issue): {error_msg[:200]}'
+                    'justification': f'Claude API 400 error: {error_msg[:200]}'
                 }
-            
+
             if attempt < max_retries - 1:
-                time.sleep(2 ** attempt)  # Exponential backoff
+                attempt += 1
+                time.sleep(2 ** attempt)
                 continue
             return {
                 'result': 'Not Determined',
@@ -653,110 +681,123 @@ def evaluate_full_paper_models(
         ground_truth_labels: List[str] = []
         predicted_labels: List[str] = []
         skipped: List[str] = []
-        
-        # Token counting for dry run mode
         total_input_tokens = 0
         total_output_tokens_estimate = 0
-        
-        # Process entries
-        for entry_idx, entry in enumerate(entries, 1):
-            paper_id = get_paper_id(entry)
-            claim = get_claim_from_entry(entry)
-            ground_truth_label = get_label_from_entry(entry, benchmark_name)
-            
-            if not paper_id or not claim:
-                skipped.append(f"{paper_id or 'unknown'}: missing paper_id or claim")
-                continue
-            
-            if not ground_truth_label or ground_truth_label == 'Unknown':
-                skipped.append(f"{paper_id}: no ground truth label")
-                continue
-            
-            # Load full paper
-            paper_text = load_full_paper(paper_id, data_structure)
-            if not paper_text:
-                skipped.append(f"{paper_id}: paper not found")
-                continue
-            
-            if dry_run:
-                # Only count tokens, don't send LLM request
+
+        results_file = model_output_dir / 'results.jsonl'
+
+        if dry_run:
+            # Token-counting mode: sequential is fine (no API calls)
+            for entry_idx, entry in enumerate(entries, 1):
+                paper_id = get_paper_id(entry)
+                claim = get_claim_from_entry(entry)
+                ground_truth_label = get_label_from_entry(entry, benchmark_name)
+                if not paper_id or not claim:
+                    skipped.append(f"{paper_id or 'unknown'}: missing paper_id or claim"); continue
+                if not ground_truth_label or ground_truth_label == 'Unknown':
+                    skipped.append(f"{paper_id}: no ground truth label"); continue
+                paper_text = load_full_paper(paper_id, data_structure)
+                if not paper_text:
+                    skipped.append(f"{paper_id}: paper not found"); continue
                 prompt = create_verification_prompt(claim, paper_text)
                 input_tokens = count_tokens(prompt, model_name)
                 total_input_tokens += input_tokens
-                total_output_tokens_estimate += 100  # Rough estimate for JSON response
-                
+                total_output_tokens_estimate += 100
                 result_entry = {
-                    'paper_id': paper_id,
-                    'claim': claim,
+                    'paper_id': paper_id, 'claim': claim,
                     'ground_truth_label': ground_truth_label,
                     'predicted_label': 'DRY_RUN',
                     'justification': f'Dry run - counted {input_tokens} input tokens',
-                    'is_correct': False,
-                    'input_tokens': input_tokens,
+                    'is_correct': False, 'input_tokens': input_tokens,
                 }
-                
                 results.append(result_entry)
-                
                 if entry_idx % 10 == 0:
-                    avg_so_far = total_input_tokens / entry_idx if entry_idx > 0 else 0
+                    avg_so_far = total_input_tokens / entry_idx
                     print(f"Counted {entry_idx}/{len(entries)} claims... (Avg input tokens: {avg_so_far:,.1f})")
-            else:
-                # Verify claim with the appropriate model
-                try:
-                    if provider == 'openai' or provider == 'gpt':
-                        if not openai_client:
-                            skipped.append(f"{paper_id}: OpenAI client not available")
-                            continue
-                        verification_result = verify_with_openai(claim, paper_text, model_name, openai_client)
-                    elif provider == 'claude' or provider == 'anthropic':
-                        if not anthropic_client:
-                            skipped.append(f"{paper_id}: Anthropic client not available")
-                            continue
-                        verification_result = verify_with_claude(claim, paper_text, model_name, anthropic_client)
-                    elif provider == 'gemini' or provider == 'google':
-                        if not GEMINI_AVAILABLE:
-                            skipped.append(f"{paper_id}: Gemini client not available")
-                            continue
-                        api_key = google_api_key or GOOGLE_API_KEY or os.environ.get('GOOGLE_API_KEY', '')
-                        verification_result = verify_with_gemini(claim, paper_text, model_name, api_key=api_key)
-                    else:
-                        skipped.append(f"{paper_id}: unknown provider: {provider}")
-                        continue
-                    
-                    predicted_label = verification_result.get('result', 'Not Determined')
-                    justification = verification_result.get('justification', '')
-                    
-                    # Check if prediction matches ground truth
-                    is_correct = (predicted_label.lower() == ground_truth_label.lower())
-                    
-                    # Create result entry
-                    result_entry = {
-                        'paper_id': paper_id,
-                        'claim': claim,
-                        'ground_truth_label': ground_truth_label,
-                        'predicted_label': predicted_label,
-                        'justification': justification,
-                        'is_correct': is_correct,
-                    }
-                    
-                    results.append(result_entry)
-                    ground_truth_labels.append(ground_truth_label)
-                    predicted_labels.append(predicted_label)
-                    
-                    if entry_idx % 10 == 0:
-                        print(f"Processed {entry_idx}/{len(entries)} claims...")
-                        
-                except Exception as e:
-                    skipped.append(f"{paper_id}: error - {e}")
-                    print(f"Error processing {paper_id}: {e}")
+        else:
+            # Live mode: async LLM calls + per-entry checkpointing for resumability
+            already_done: Dict[tuple, Dict] = {}
+            if results_file.exists():
+                with open(results_file, encoding='utf-8') as _cf:
+                    for _line in _cf:
+                        _line = _line.strip()
+                        if _line:
+                            try:
+                                _rec = json.loads(_line)
+                                already_done[(_rec.get('paper_id', ''), _rec.get('claim', ''))] = _rec
+                            except json.JSONDecodeError:
+                                pass
+                if already_done:
+                    print(f"  [resume] {len(already_done)} entries already done — skipping LLM calls.", flush=True)
+
+            _write_lock = Lock()
+            _done_count = [0]
+            _total = len(entries)
+
+            async def _verify_entry_async(semaphore, _idx, _entry):
+                _paper_id = get_paper_id(_entry)
+                _claim = get_claim_from_entry(_entry)
+                _gt_label = get_label_from_entry(_entry, benchmark_name)
+
+                if not _paper_id or not _claim:
+                    return None, f"{_paper_id or 'unknown'}: missing paper_id or claim"
+                if not _gt_label or _gt_label == 'Unknown':
+                    return None, f"{_paper_id}: no ground truth label"
+
+                _ck_key = (_paper_id, _claim)
+                if _ck_key in already_done:
+                    _done_count[0] += 1
+                    return already_done[_ck_key], None
+
+                _paper_text = load_full_paper(_paper_id, data_structure)
+                if not _paper_text:
+                    return None, f"{_paper_id}: paper not found"
+
+                async with semaphore:
+                    try:
+                        from claim_verification.utils.llm_client import call_llm_async, extract_json_object
+                        _prompt = create_verification_prompt(_claim, _paper_text)
+                        _text = await call_llm_async(model=model_name, user=_prompt, max_tokens=1024)
+                        _parsed = extract_json_object(_text) or {}
+                        _pred = _parsed.get('result', 'Not Determined')
+                        _rec = {
+                            'paper_id': _paper_id, 'claim': _claim,
+                            'ground_truth_label': _gt_label,
+                            'predicted_label': _pred,
+                            'justification': _parsed.get('justification', _text[:200] if not _parsed else ''),
+                            'is_correct': _pred.lower() == _gt_label.lower(),
+                        }
+                        with _write_lock:
+                            with open(results_file, 'a', encoding='utf-8') as _f:
+                                _f.write(json.dumps(_rec, ensure_ascii=False) + '\n')
+                        _done_count[0] += 1
+                        if _done_count[0] % 10 == 0:
+                            print(f"Processed {_done_count[0]}/{_total} claims...", flush=True)
+                        return _rec, None
+                    except Exception as _e:
+                        return None, f"{_paper_id}: error - {_e}"
+
+            async def _run_all_async():
+                semaphore = asyncio.Semaphore(num_workers)
+                tasks = [_verify_entry_async(semaphore, idx, entry)
+                         for idx, entry in enumerate(entries, 1)]
+                return await asyncio.gather(*tasks)
+
+            for _rec, _err in asyncio.run(_run_all_async()):
+                if _err:
+                    skipped.append(_err)
+                    print(f"  [skip] {_err}", flush=True)
+                else:
+                    results.append(_rec)
+                    ground_truth_labels.append(_rec['ground_truth_label'])
+                    predicted_labels.append(_rec['predicted_label'])
         
         # Calculate classification metrics (skip in dry run mode)
         classification_metrics = {}
         if ground_truth_labels and predicted_labels and not dry_run:
             classification_metrics = calculate_classification_metrics(ground_truth_labels, predicted_labels)
         
-        # Save per-instance results
-        results_file = model_output_dir / 'results.jsonl'
+        # Rewrite results.jsonl in order (deduplicates any concurrent-write overlaps)
         with open(results_file, 'w', encoding='utf-8') as f:
             for result in results:
                 f.write(json.dumps(result, ensure_ascii=False) + '\n')

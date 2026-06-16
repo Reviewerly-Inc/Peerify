@@ -1,13 +1,23 @@
 
 
+import asyncio
 import os
 import json
 import argparse
+import hashlib
+import threading
 import numpy as np
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
 import sys
+
+# Load .env from project root so API keys are always available
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parents[2] / '.env')
+except ImportError:
+    pass
 
 # Token counting support
 try:
@@ -497,6 +507,88 @@ def calculate_classification_metrics(
     }
 
 
+RETRIEVAL_CACHE_DIR = Path("data/experiments_v2/retrieval_cache")
+
+
+def _claim_hash(paper_id: str, claim: str) -> str:
+    return hashlib.md5(f"{paper_id}||{claim}".encode()).hexdigest()[:16]
+
+
+def _ensure_retrieval_cache(
+    entries: List[Dict[str, Any]],
+    retrieve_fn,
+    top_k: int,
+    data_structure,
+    benchmark_name: str,
+    retriever: str,
+) -> Dict[tuple, List[Dict]]:
+    """Load or build retrieval cache for all entries. Returns mapping (paper_id, claim_hash) -> chunks."""
+    RETRIEVAL_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    cache_file = RETRIEVAL_CACHE_DIR / f"{benchmark_name}__{retriever}__top{top_k}.jsonl"
+
+    # Load existing cache entries
+    cache: Dict[tuple, List[Dict]] = {}
+    if cache_file.exists():
+        with open(cache_file, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    rec = json.loads(line)
+                    cache[(rec["paper_id"], rec["claim_hash"])] = rec["chunks"]
+
+    # Compute missing entries and append to cache file
+    new_lines = []
+    for entry in entries:
+        paper_id = get_paper_id(entry)
+        claim = get_claim_from_entry(entry)
+        if not paper_id or not claim:
+            continue
+        ch = _claim_hash(paper_id, claim)
+        key = (paper_id, ch)
+        if key in cache:
+            continue
+
+        if retriever == "oracle":
+            # Oracle: use the ground-truth paragraph directly (B1 upper-bound baseline).
+            # No retrieval model needed — paragraph/section_name are in the entry itself.
+            paragraph = entry.get("paragraph", "")
+            if not paragraph:
+                continue
+            serialized = [{
+                "text": paragraph,
+                "section": entry.get("section_name", entry.get("section", "")),
+                "subsection": entry.get("subsection_name", entry.get("subsection", "")),
+                "idx": 0,
+            }]
+        else:
+            chunks = find_chunks_for_paper(paper_id, data_structure)
+            if not chunks:
+                continue
+            retrieved = retrieve_fn(claim, chunks, top_k=top_k)
+            serialized = [
+                {
+                    "text": c.get("text", ""),
+                    "section": c.get("section", ""),
+                    "subsection": c.get("subsection", ""),
+                    "idx": c.get("idx", i),
+                }
+                for i, c in enumerate(retrieved)
+            ]
+
+        cache[key] = serialized
+        new_lines.append(json.dumps({"paper_id": paper_id, "claim_hash": ch, "chunks": serialized}))
+
+    if new_lines:
+        with open(cache_file, "a", encoding="utf-8") as f:
+            for line in new_lines:
+                f.write(line + "\n")
+        print(f"  [cache] stored {len(new_lines)} new retrieval results -> {cache_file}", flush=True)
+    else:
+        print(f"  [cache] loaded {len(cache)} retrieval results from {cache_file}", flush=True)
+
+    return cache
+
+
 def evaluate_retrieval_and_verification_for_claim(
     claim: str,
     paper_id: str,
@@ -506,7 +598,8 @@ def evaluate_retrieval_and_verification_for_claim(
     retrieve_fn,
     llm_model: str,
     top_k: int = 10,
-    dry_run: bool = False
+    dry_run: bool = False,
+    pre_retrieved_chunks: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """
     Evaluate both retrieval and verification for a single claim.
@@ -517,8 +610,11 @@ def evaluate_retrieval_and_verification_for_claim(
     Returns:
         Dictionary with retrieval results, verification results, and all metrics
     """
-    # Step 1: Retrieve top-K chunks
-    retrieved_chunks = retrieve_fn(claim, chunks, top_k=top_k)
+    # Step 1: Retrieve top-K chunks (or use pre-computed cache)
+    if pre_retrieved_chunks is not None:
+        retrieved_chunks = pre_retrieved_chunks
+    else:
+        retrieved_chunks = retrieve_fn(claim, chunks, top_k=top_k)
     
     # Step 2: Calculate retrieval metrics (only if we have structured ground truth)
     k_values = [1, 3, 5, 10, 20]
@@ -610,6 +706,7 @@ def evaluate_benchmark_retrieval_and_verification(
     output_dir: Optional[str] = None,
     benchmark_name: str = '',
     dry_run: bool = False,
+    num_workers: int = 4,
 ) -> Dict[str, Any]:
     """
     Evaluate both retrieval and verification metrics for a benchmark.
@@ -656,86 +753,163 @@ def evaluate_benchmark_retrieval_and_verification(
         print(f"\n{'='*60}")
         print("DRY RUN MODE - Only counting tokens, not sending LLM requests")
         print(f"{'='*60}\n")
-    
+
+    # Phase 1: build or load retrieval cache (single-threaded — dense models are not thread-safe)
+    print(f"  [Phase 1] Building/loading retrieval cache for {retriever}/{benchmark_name} top-{top_k}...", flush=True)
+    retrieval_cache = _ensure_retrieval_cache(
+        entries, retrieve_fn, top_k, data_structure, benchmark_name, retriever
+    )
+
     # Results storage
     results: List[Dict[str, Any]] = []
     all_retrieval_metrics: Dict[str, List[float]] = defaultdict(list)
     ground_truth_labels: List[str] = []
     predicted_labels: List[str] = []
     skipped: List[str] = []
-    
+
     # Token counting for dry run mode
     total_input_tokens = 0
-    total_output_tokens_estimate = 0
-    
-    # Process each entry
-    for entry_idx, entry in enumerate(entries, 1):
+
+    # Phase 2: parallel LLM verification (I/O bound — safe to thread)
+    checkpoint_file = output_dir / 'results.jsonl'
+
+    # Load any partial results from a previous interrupted run
+    already_done: Dict[tuple, Dict] = {}  # (paper_id, claim) -> result_entry
+    if checkpoint_file.exists() and not dry_run:
+        with open(checkpoint_file, encoding='utf-8') as _cf:
+            for _line in _cf:
+                _line = _line.strip()
+                if _line:
+                    try:
+                        _rec = json.loads(_line)
+                        already_done[(_rec.get('paper_id', ''), _rec.get('claim', ''))] = _rec
+                    except json.JSONDecodeError:
+                        pass
+        if already_done:
+            print(f"  [resume] {len(already_done)} entries already done — skipping LLM calls for those.", flush=True)
+
+    _write_lock = threading.Lock()
+    _done_count = [0]
+    total = len(entries)
+
+    async def _process_entry_async(semaphore, entry_idx, entry):
         paper_id = get_paper_id(entry)
         claim = get_claim_from_entry(entry)
         ground_truth_evidence = get_ground_truth_evidence(entry, benchmark_name)
         ground_truth_label = get_label_from_entry(entry, benchmark_name)
-        
+
         if not paper_id or not claim:
-            skipped.append(f"{paper_id or 'unknown'}: missing paper_id or claim")
-            continue
-        
-        # Load chunks
-        chunks = find_chunks_for_paper(paper_id, data_structure)
-        if not chunks:
-            skipped.append(f"{paper_id}: no chunks available")
-            continue
-        
-        # Evaluate retrieval and verification
-        try:
-            eval_result = evaluate_retrieval_and_verification_for_claim(
-                claim=claim,
-                paper_id=paper_id,
-                ground_truth_evidence=ground_truth_evidence,
-                ground_truth_label=ground_truth_label,
-                chunks=chunks,
-                retrieve_fn=retrieve_fn,
-                llm_model=llm_model,
-                top_k=top_k,
-                dry_run=dry_run
-            )
-            
-            # Create result entry
-            result_entry = {
-                'paper_id': paper_id,
-                'claim': claim,
-                'ground_truth_label': ground_truth_label,
-                'ground_truth_evidence_count': len(ground_truth_evidence),
-                'ground_truth_evidence': ground_truth_evidence,
-                'evaluation_result': eval_result,
-            }
-            
-            # Track tokens in dry run mode
-            if dry_run:
-                input_tokens = eval_result.get('input_tokens', 0)
-                total_input_tokens += input_tokens
-                total_output_tokens_estimate += 100  # Rough estimate for JSON response
-            
-            # Add retrieval metrics to aggregated list (if we have evidence)
-            if ground_truth_evidence:
-                for metric_name, metric_value in eval_result['retrieval']['metrics'].items():
-                    all_retrieval_metrics[metric_name].append(metric_value)
-            
-            # Add labels for classification metrics (not meaningful in dry run)
-            ground_truth_labels.append(ground_truth_label)
-            predicted_labels.append(eval_result['verification']['predicted_label'])
-            
-            results.append(result_entry)
-            
-            if entry_idx % 10 == 0:
+            return None, f"{paper_id or 'unknown'}: missing paper_id or claim"
+
+        # Resume: reuse already-completed result, no API call
+        ck_key = (paper_id, claim)
+        if ck_key in already_done:
+            rec = dict(already_done[ck_key])
+            rec['_entry_idx'] = entry_idx
+            _done_count[0] += 1
+            return rec, None
+
+        ch = _claim_hash(paper_id, claim)
+        pre_chunks = retrieval_cache.get((paper_id, ch))
+        if pre_chunks is None:
+            return None, f"{paper_id}: no cached retrieval results"
+
+        async with semaphore:
+            try:
+                from claim_verification.retrieval.pipeline_wrapper import entailment_for_claim_async
+                # Retrieval metrics are CPU-only — compute before async LLM call
+                k_values = [1, 3, 5, 10, 20]
+                ret_metrics = {}
+                matched_chunks = []
+                if ground_truth_evidence:
+                    for k in k_values:
+                        if k <= top_k:
+                            ret_metrics[f'recall@{k}'] = calculate_recall_at_k(pre_chunks, ground_truth_evidence, k)
+                            ret_metrics[f'ndcg@{k}'] = calculate_ndcg_at_k(pre_chunks, ground_truth_evidence, k)
+                    ret_metrics['mrr'] = calculate_mrr(pre_chunks, ground_truth_evidence)
+                    for i, chunk in enumerate(pre_chunks):
+                        for ev in ground_truth_evidence:
+                            if match_chunk_to_evidence(chunk, ev):
+                                matched_chunks.append({'rank': i+1, 'chunk_idx': chunk.get('idx', i+1),
+                                                       'section': chunk.get('section', 'unknown')})
+                                break
+
                 if dry_run:
-                    avg_so_far = total_input_tokens / entry_idx if entry_idx > 0 else 0
-                    print(f"Counted {entry_idx}/{len(entries)} claims... (Avg input tokens: {avg_so_far:,.1f})")
+                    prompt = create_verification_prompt_for_counting(claim, pre_chunks)
+                    input_tokens = count_tokens(prompt, llm_model)
+                    verification = {'predicted_label': 'DRY_RUN',
+                                    'justification': f'Dry run - {input_tokens} tokens',
+                                    'ground_truth_label': ground_truth_label, 'is_correct': False}
+                    eval_result = {'retrieval': {'num_retrieved': len(pre_chunks),
+                                                 'num_ground_truth': len(ground_truth_evidence),
+                                                 'num_matched': len(matched_chunks),
+                                                 'matched_chunks': matched_chunks, 'metrics': ret_metrics},
+                                   'verification': verification, 'input_tokens': input_tokens}
                 else:
-                    print(f"Processed {entry_idx}/{len(entries)} claims...")
-                
-        except Exception as e:
-            skipped.append(f"{paper_id}: error - {e}")
-            print(f"Error processing {paper_id}: {e}")
+                    vr = await entailment_for_claim_async(claim, pre_chunks, llm_model)
+                    pred = vr.get('result', 'Not Determined')
+                    eval_result = {'retrieval': {'num_retrieved': len(pre_chunks),
+                                                 'num_ground_truth': len(ground_truth_evidence),
+                                                 'num_matched': len(matched_chunks),
+                                                 'matched_chunks': matched_chunks,
+                                                 'retrieved_chunks': [{'rank': i+1, 'chunk_idx': c.get('idx', i+1),
+                                                                        'section': c.get('section', ''),
+                                                                        'text': c.get('text', '')[:500]}
+                                                                       for i, c in enumerate(pre_chunks)],
+                                                 'metrics': ret_metrics},
+                                   'verification': {'ground_truth_label': ground_truth_label,
+                                                    'predicted_label': pred,
+                                                    'justification': vr.get('justification', ''),
+                                                    'is_correct': pred.lower() == ground_truth_label.lower()}}
+
+                result_entry = {
+                    '_entry_idx': entry_idx,
+                    'paper_id': paper_id, 'claim': claim,
+                    'ground_truth_label': ground_truth_label,
+                    'ground_truth_evidence_count': len(ground_truth_evidence),
+                    'ground_truth_evidence': ground_truth_evidence,
+                    'evaluation_result': eval_result,
+                }
+                if not dry_run:
+                    with _write_lock:
+                        with open(checkpoint_file, 'a', encoding='utf-8') as _f:
+                            _f.write(json.dumps(result_entry, ensure_ascii=False) + '\n')
+                _done_count[0] += 1
+                done = _done_count[0]
+                if done % 10 == 0:
+                    print(f"Processed {done}/{total} claims...", flush=True)
+                return result_entry, None
+            except Exception as e:
+                return None, f"{paper_id}: error - {e}"
+
+    async def _run_all():
+        semaphore = asyncio.Semaphore(num_workers)
+        tasks = [_process_entry_async(semaphore, idx, entry)
+                 for idx, entry in enumerate(entries, 1)]
+        return await asyncio.gather(*tasks)
+
+    print(f"  [Phase 2] Running LLM verification async ({num_workers} concurrent)...", flush=True)
+    raw = asyncio.run(_run_all())
+    for result_entry, err in raw:
+        if err:
+            skipped.append(err)
+            print(f"  [skip] {err}", flush=True)
+        else:
+            results.append(result_entry)
+
+    # Restore original order
+    results.sort(key=lambda r: r.pop('_entry_idx'))
+
+    # Aggregate metrics from ordered results
+    for r in results:
+        ev = r['evaluation_result']
+        if r['ground_truth_evidence']:
+            for metric_name, metric_value in ev['retrieval']['metrics'].items():
+                all_retrieval_metrics[metric_name].append(metric_value)
+        ground_truth_labels.append(r['ground_truth_label'])
+        predicted_labels.append(ev['verification']['predicted_label'])
+        if dry_run:
+            total_input_tokens += ev.get('input_tokens', 0)
     
     # Calculate aggregated retrieval metrics
     aggregated_retrieval_metrics = {}
@@ -777,7 +951,8 @@ def evaluate_benchmark_retrieval_and_verification(
     if dry_run:
         num_instances = len(results)
         avg_input_tokens = total_input_tokens / num_instances if num_instances > 0 else 0
-        avg_output_tokens = total_output_tokens_estimate / num_instances if num_instances > 0 else 0
+        avg_output_tokens_estimate = num_instances * 100  # rough estimate for JSON response
+        avg_output_tokens = avg_output_tokens_estimate / num_instances if num_instances > 0 else 0
         metrics_summary['num_instances'] = num_instances
         metrics_summary['avg_input_tokens_per_instance'] = avg_input_tokens
         metrics_summary['avg_output_tokens_per_instance'] = avg_output_tokens
@@ -791,13 +966,16 @@ def evaluate_benchmark_retrieval_and_verification(
     print(f"Metrics saved to: {metrics_file}")
     
     if dry_run:
+        n = len(results)
+        ai = total_input_tokens / n if n > 0 else 0
+        ao = 100.0
         print(f"\n{'='*60}")
         print("TOKEN COUNT SUMMARY (DRY RUN)")
         print(f"{'='*60}")
-        print(f"Number of Instances: {num_instances:,}")
-        print(f"Avg Input Tokens per Instance: {avg_input_tokens:,.1f}")
-        print(f"Avg Output Tokens per Instance (estimate): {avg_output_tokens:,.1f}")
-        print(f"Avg Tokens per Instance: {avg_input_tokens + avg_output_tokens:,.1f}")
+        print(f"Number of Instances: {n:,}")
+        print(f"Avg Input Tokens per Instance: {ai:,.1f}")
+        print(f"Avg Output Tokens per Instance (estimate): {ao:,.1f}")
+        print(f"Avg Tokens per Instance: {ai + ao:,.1f}")
         print(f"{'='*60}\n")
     
     return metrics_summary
@@ -812,28 +990,47 @@ def main():
     parser.add_argument('--top-k', type=int, default=10, help='Number of chunks to retrieve')
     parser.add_argument('--max-entries', type=int, help='Maximum number of entries to process')
     parser.add_argument('--dry-run', action='store_true', help='Only count tokens without sending LLM requests')
-    
+    parser.add_argument('--num-workers', type=int, default=8, help='Parallel LLM verification workers (default 8)')
+    parser.add_argument('--cache-only', action='store_true',
+                        help='Only build retrieval cache (no LLM calls, no metrics.json written)')
+
     args = parser.parse_args()
     
     # Determine benchmark path
     data_structure = DataStructure()
     benchmark_path = args.benchmark
     
-    # If it's a benchmark name (B1, B2, etc.), resolve to file path
-    if benchmark_path.upper() in ['B1', 'B2', 'B3', 'B4', 'B5']:
+    # If it's a benchmark name (B1-B6), resolve to file path
+    if benchmark_path.upper() in ['B1', 'B2', 'B3', 'B4', 'B5', 'B6']:
         benchmark_map = {
             'B1': 'B1_golden_supported.jsonl',
             'B2': 'B2_reviewer_author.jsonl',
             'B3': 'B3_reviewer_paper.jsonl',
             'B4': 'B4_agreement.jsonl',
             'B5': 'B5_verifiable.jsonl',
+            'B6': 'B6_human.jsonl',
         }
         benchmark_path = str(data_structure.benchmark_dir / benchmark_map[benchmark_path.upper()])
     
     if not Path(benchmark_path).exists():
         print(f"Error: Benchmark file not found: {benchmark_path}")
         sys.exit(1)
-    
+
+    # --cache-only: just build retrieval cache, no LLM calls
+    if args.cache_only:
+        data_structure = DataStructure()
+        entries = load_benchmark(benchmark_path)
+        if args.max_entries:
+            entries = entries[:args.max_entries]
+        bname = get_benchmark_name(benchmark_path)
+        retrieve_fn = RETRIEVER_FUNCS.get(args.retriever)
+        if retrieve_fn is None:
+            print(f"Unknown retriever: {args.retriever}")
+            sys.exit(1)
+        _ensure_retrieval_cache(entries, retrieve_fn, args.top_k, data_structure, bname, args.retriever)
+        print(f"[cache-only] done: {bname}/{args.retriever}/top{args.top_k}")
+        sys.exit(0)
+
     metrics_summary = evaluate_benchmark_retrieval_and_verification(
         benchmark_path=benchmark_path,
         retriever=args.retriever,
@@ -842,6 +1039,7 @@ def main():
         max_entries=args.max_entries,
         output_dir=args.output_dir,
         dry_run=args.dry_run,
+        num_workers=args.num_workers,
     )
     
     print(json.dumps(metrics_summary, indent=2))

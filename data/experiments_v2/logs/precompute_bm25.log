@@ -1,0 +1,112 @@
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Found markdown: /Users/alirezadaghigh/Desktop/Peerify/data/markdown/uyqjpycMbU.md, creating chunks...
+Found markdown: /Users/alirezadaghigh/Desktop/Peerify/data/markdown/5M2MjyNR2w.md, creating chunks...
+Found markdown: /Users/alirezadaghigh/Desktop/Peerify/data/markdown/a24gfxA7jD.md, creating chunks...
+Found markdown: /Users/alirezadaghigh/Desktop/Peerify/data/markdown/g9diuvxN6D.md, creating chunks...
+Found markdown: /Users/alirezadaghigh/Desktop/Peerify/data/markdown/CgGjT8EG8A.md, creating chunks...
+Found markdown: /Users/alirezadaghigh/Desktop/Peerify/data/markdown/IRcv4yFX6z.md, creating chunks...
+Found markdown: /Users/alirezadaghigh/Desktop/Peerify/data/markdown/6ujgouOiAA.md, creating chunks...
+Found markdown: /Users/alirezadaghigh/Desktop/Peerify/data/markdown/Q74JVgKCP6.md, creating chunks...
+Found markdown: /Users/alirezadaghigh/Desktop/Peerify/data/markdown/BqEvdOS1Hs.md, creating chunks...
+Found markdown: /Users/alirezadaghigh/Desktop/Peerify/data/markdown/E8b4yOLGZ5.md, creating chunks...
+Found markdown: /Users/alirezadaghigh/Desktop/Peerify/data/markdown/3fRbP8g2LT.md, creating chunks...
+Found markdown: /Users/alirezadaghigh/Desktop/Peerify/data/markdown/3jXCF5dNpC.md, creating chunks...
+Found markdown: /Users/alirezadaghigh/Desktop/Peerify/data/markdown/JfxqomOs60.md, creating chunks...
+Found markdown: /Users/alirezadaghigh/Desktop/Peerify/data/markdown/MYI443zCvv.md, creating chunks...
+Found markdown: /Users/alirezadaghigh/Desktop/Peerify/data/markdown/EMCXCTsmSx.md, creating chunks...
+Found markdown: /Users/alirezadaghigh/Desktop/Peerify/data/markdown/ml01XyP698.md, creating chunks...
+Found markdown: /Users/alirezadaghigh/Desktop/Peerify/data/markdown/kmn0BhQk7p.md, creating chunks...
+  [cache] stored 500 new retrieval results -> data/experiments_v2/retrieval_cache/B1_golden_supported__bm25__top10.jsonl
+[cache-only] done: B1_golden_supported/bm25/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] stored 800 new retrieval results -> data/experiments_v2/retrieval_cache/B2_reviewer_author__bm25__top10.jsonl
+[cache-only] done: B2_reviewer_author/bm25/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] stored 800 new retrieval results -> data/experiments_v2/retrieval_cache/B3_reviewer_paper__bm25__top10.jsonl
+[cache-only] done: B3_reviewer_paper/bm25/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] stored 175 new retrieval results -> data/experiments_v2/retrieval_cache/B4_agreement__bm25__top10.jsonl
+[cache-only] done: B4_agreement/bm25/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] stored 131 new retrieval results -> data/experiments_v2/retrieval_cache/B5_verifiable__bm25__top10.jsonl
+[cache-only] done: B5_verifiable/bm25/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Error: Benchmark file not found: /Users/alirezadaghigh/Desktop/Peerify/data/valid_benchmarks/B6_human_annotated.jsonl
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] loaded 500 retrieval results from data/experiments_v2/retrieval_cache/B1_golden_supported__bm25__top10.jsonl
+[cache-only] done: B1_golden_supported/bm25/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] loaded 800 retrieval results from data/experiments_v2/retrieval_cache/B2_reviewer_author__bm25__top10.jsonl
+[cache-only] done: B2_reviewer_author/bm25/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] loaded 800 retrieval results from data/experiments_v2/retrieval_cache/B3_reviewer_paper__bm25__top10.jsonl
+[cache-only] done: B3_reviewer_paper/bm25/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] loaded 175 retrieval results from data/experiments_v2/retrieval_cache/B4_agreement__bm25__top10.jsonl
+[cache-only] done: B4_agreement/bm25/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] loaded 131 retrieval results from data/experiments_v2/retrieval_cache/B5_verifiable__bm25__top10.jsonl
+[cache-only] done: B5_verifiable/bm25/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] stored 150 new retrieval results -> data/experiments_v2/retrieval_cache/B6_human__bm25__top10.jsonl
+[cache-only] done: B6_human/bm25/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] loaded 500 retrieval results from data/experiments_v2/retrieval_cache/B1_golden_supported__bm25__top10.jsonl
+[cache-only] done: B1_golden_supported/bm25/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] loaded 800 retrieval results from data/experiments_v2/retrieval_cache/B2_reviewer_author__bm25__top10.jsonl
+[cache-only] done: B2_reviewer_author/bm25/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] loaded 800 retrieval results from data/experiments_v2/retrieval_cache/B3_reviewer_paper__bm25__top10.jsonl
+[cache-only] done: B3_reviewer_paper/bm25/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] loaded 175 retrieval results from data/experiments_v2/retrieval_cache/B4_agreement__bm25__top10.jsonl
+[cache-only] done: B4_agreement/bm25/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] loaded 131 retrieval results from data/experiments_v2/retrieval_cache/B5_verifiable__bm25__top10.jsonl
+[cache-only] done: B5_verifiable/bm25/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] loaded 150 retrieval results from data/experiments_v2/retrieval_cache/B6_human__bm25__top10.jsonl
+[cache-only] done: B6_human/bm25/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] loaded 500 retrieval results from data/experiments_v2/retrieval_cache/B1_golden_supported__bm25__top10.jsonl
+[cache-only] done: B1_golden_supported/bm25/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] loaded 800 retrieval results from data/experiments_v2/retrieval_cache/B2_reviewer_author__bm25__top10.jsonl
+[cache-only] done: B2_reviewer_author/bm25/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] loaded 800 retrieval results from data/experiments_v2/retrieval_cache/B3_reviewer_paper__bm25__top10.jsonl
+[cache-only] done: B3_reviewer_paper/bm25/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] loaded 175 retrieval results from data/experiments_v2/retrieval_cache/B4_agreement__bm25__top10.jsonl
+[cache-only] done: B4_agreement/bm25/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] loaded 131 retrieval results from data/experiments_v2/retrieval_cache/B5_verifiable__bm25__top10.jsonl
+[cache-only] done: B5_verifiable/bm25/top10
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [cache] loaded 150 retrieval results from data/experiments_v2/retrieval_cache/B6_human__bm25__top10.jsonl
+[cache-only] done: B6_human/bm25/top10

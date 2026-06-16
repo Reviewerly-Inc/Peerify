@@ -1,0 +1,206 @@
+/Users/alirezadaghigh/Desktop/Peerify/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+  [Phase 1] Building/loading retrieval cache for biencoder-crossencoder/B1_golden_supported top-10...
+  [cache] loaded 500 retrieval results from data/experiments_v2/retrieval_cache/B1_golden_supported__biencoder-crossencoder__top10.jsonl
+  [Phase 2] Running LLM verification async (8 concurrent)...
+Processed 10/500 claims...
+Processed 20/500 claims...
+Processed 30/500 claims...
+Processed 40/500 claims...
+Processed 50/500 claims...
+Processed 60/500 claims...
+Processed 70/500 claims...
+Processed 80/500 claims...
+Processed 90/500 claims...
+Processed 100/500 claims...
+Processed 110/500 claims...
+Processed 120/500 claims...
+Processed 130/500 claims...
+Processed 140/500 claims...
+Processed 150/500 claims...
+Processed 160/500 claims...
+Processed 170/500 claims...
+Processed 180/500 claims...
+Processed 190/500 claims...
+Processed 200/500 claims...
+Processed 210/500 claims...
+Processed 220/500 claims...
+Processed 230/500 claims...
+Processed 240/500 claims...
+Processed 250/500 claims...
+Processed 260/500 claims...
+Processed 270/500 claims...
+Processed 280/500 claims...
+Processed 290/500 claims...
+Processed 300/500 claims...
+Processed 310/500 claims...
+Processed 320/500 claims...
+Processed 330/500 claims...
+Processed 340/500 claims...
+Processed 350/500 claims...
+Processed 360/500 claims...
+Processed 370/500 claims...
+Processed 380/500 claims...
+Processed 390/500 claims...
+Processed 400/500 claims...
+Processed 410/500 claims...
+Processed 420/500 claims...
+Processed 430/500 claims...
+Processed 440/500 claims...
+Processed 450/500 claims...
+Processed 460/500 claims...
+Processed 470/500 claims...
+Processed 480/500 claims...
+Processed 490/500 claims...
+Processed 500/500 claims...
+
+Results saved to: data/experiments_v2/rag/B1/o4-mini/biencoder-crossencoder/results.jsonl
+Metrics saved to: data/experiments_v2/rag/B1/o4-mini/biencoder-crossencoder/metrics.json
+{
+  "benchmark_path": "/Users/alirezadaghigh/Desktop/Peerify/data/benchmark/B1_golden_supported.jsonl",
+  "benchmark_name": "B1_golden_supported",
+  "retriever": "biencoder-crossencoder",
+  "llm_model": "o4-mini",
+  "top_k": 10,
+  "total_processed": 500,
+  "total_skipped": 0,
+  "retrieval_metrics": {
+    "recall@1": {
+      "mean": 0.296,
+      "std": 0.4564909637659874,
+      "median": 0.0,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "ndcg@1": {
+      "mean": 0.296,
+      "std": 0.4564909637659874,
+      "median": 0.0,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "recall@3": {
+      "mean": 0.472,
+      "std": 0.4992153843783262,
+      "median": 0.0,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "ndcg@3": {
+      "mean": 0.5181138433214353,
+      "std": 0.6510346955486759,
+      "median": 0.0,
+      "min": 0.0,
+      "max": 2.1309297535714578
+    },
+    "recall@5": {
+      "mean": 0.558,
+      "std": 0.49662460672020675,
+      "median": 1.0,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "ndcg@5": {
+      "mean": 0.6495320742824486,
+      "std": 0.7917218014403854,
+      "median": 0.43067655807339306,
+      "min": 0.0,
+      "max": 2.9484591188793923
+    },
+    "recall@10": {
+      "mean": 0.692,
+      "std": 0.4616665463297075,
+      "median": 1.0,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "ndcg@10": {
+      "mean": 0.879509764375219,
+      "std": 1.0658887366292793,
+      "median": 0.5,
+      "min": 0.0,
+      "max": 4.543559338088346
+    },
+    "mrr": {
+      "mean": 0.41189761904761907,
+      "std": 0.411632241881864,
+      "median": 0.25,
+      "min": 0.0,
+      "max": 1.0
+    }
+  },
+  "classification_metrics": {
+    "accuracy": 0.904,
+    "per_label": {
+      "Contradicted": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "Not Determined": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "Partially Supported": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "Supported": {
+        "precision": 1.0,
+        "recall": 0.904,
+        "f1": 0.9495798319327731,
+        "support": 500
+      }
+    },
+    "macro_avg": {
+      "precision": 0.25,
+      "recall": 0.226,
+      "f1": 0.23739495798319327
+    },
+    "weighted_avg": {
+      "precision": 1.0,
+      "recall": 0.904,
+      "f1": 0.9495798319327731
+    },
+    "confusion_matrix": {
+      "labels": [
+        "Contradicted",
+        "Not Determined",
+        "Partially Supported",
+        "Supported"
+      ],
+      "matrix": [
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          9,
+          30,
+          9,
+          452
+        ]
+      ]
+    }
+  },
+  "dry_run": false
+}
